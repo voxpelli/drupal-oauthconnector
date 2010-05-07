@@ -1,0 +1,82 @@
+<?php
+// $Id$
+
+/**
+ * Implementation of hook_install().
+ */
+function oauthconnector_install() {
+  drupal_install_schema('oauthconnector');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function oauthconnector_uninstall() {
+  drupal_uninstall_schema('oauthconnector');
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function oauthconnector_schema() {
+  $schema = array();
+
+  $schema['oauthconnector_provider']  = array(
+    'description' => t('Stores information about OAuth providers.'),
+    'export' => array(
+      'identifier'      => 'provider',
+      'export callback' => 'oauthconnector_provider_export',
+      'list callback'   => 'oauthconnector_provider_list',
+    ),
+    'fields' => array(
+      'pid' => array(
+        'description' => t('The primary identifier for a provider.'),
+        'type'        => 'serial',
+        'unsigned'    => TRUE,
+        'not null'    => TRUE,
+        'no export'   => TRUE,
+      ),
+      'name' => array(
+        'description' => t('The machine-readable name of the provider.'),
+        'type'        => 'varchar',
+        'length'      => 100,
+        'not null'    => TRUE,
+      ),
+      'title' => array(
+        'description' => t('The human-readable title of the provider.'),
+        'type'        => 'varchar',
+        'length'      => 255,
+        'not null'    => TRUE,
+      ),
+      'url' => array(
+        'description' => t('A URL to the OAuth provider, typically to the front page.'),
+        'type'        => 'varchar',
+        'length'      => 255,
+        'not null'    => TRUE,
+      ),
+      'endpoint' => array(
+        'description' => t('The API endpoint for the provider.'),
+        'type'        => 'varchar',
+        'length'      => 255,
+        'not null'    => TRUE,
+      ),
+      //TODO: Should we really save the consumer key in oauthconnector_provider?
+      // Wouldn't a better separation be for oauthconnector_provider to contain the
+      // description of a provider and for OAuth Common to contain the credentials?
+      // Makes for better exportability
+      'consumer_key' => array(
+        'description' => t('The OAuth consumer to use when logging in users'),
+        'type'        => 'varchar',
+        'length'      => 32, //TODO: Check if this is really enough according to the spec?
+        'not null'    => TRUE,
+        'no export'   => TRUE,
+      ),
+    ),
+    'primary key' => array('pid'),
+    'unique keys' => array(
+      'name' => array('name'),
+    ),
+  );
+
+  return $schema;
+}
