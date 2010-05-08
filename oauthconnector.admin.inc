@@ -27,16 +27,43 @@ function oauthconnector_list_provider($js = NULL) {
   foreach ($providers as $provider) {
     $operations = array();
 
-//    if (empty($provider->disabled)) {
+    if (empty($provider->disabled)) {
       $operations[] = array(
         'title' => t('Edit'),
-        'href' => 'admin/build/oauthconnector/' . $provider->name . '/edit',
+        'href'  => 'admin/build/oauthconnector/' . $provider->name . '/edit',
       );
       $operations[] = array(
         'title' => t('Export'),
-        'href' => 'admin/build/oauthconnector/' . $provider->name . '/export',
+        'href'  => 'admin/build/oauthconnector/' . $provider->name . '/export',
       );
-//    }
+    }
+
+    if ($provider->export_type == (EXPORT_IN_CODE | EXPORT_IN_DATABASE)) {
+      $operations[] = array(
+        'title' => t('Revert'),
+        'href'  => 'admin/build/oauthconnector/' . $provider->name . '/delete',
+      );
+    }
+    elseif ($provider->export_type != EXPORT_IN_CODE) {
+      $operations[] = array(
+        'title' => t('Delete'),
+        'href'  => 'admin/build/oauthconnector/' . $provider->name . '/delete',
+      );
+    }
+    elseif (empty($provider->disabled)) {
+      $operations[] = array(
+        'title' => t('Disable'),
+        'href'  => 'admin/build/oauthconnector/' . $provider->name . '/disable',
+        'query' => drupal_get_destination(),
+      );
+    }
+    else {
+      $operations[] = array(
+        'title' => t('Enable'),
+        'href'  => 'admin/build/oauthconnector/' . $provider->name . '/enable',
+        'query' => drupal_get_destination(),
+      );
+    }
 
     $rows[$provider->name] = array(
       'data' => array(
@@ -47,12 +74,12 @@ function oauthconnector_list_provider($js = NULL) {
         'storage'      => $provider->type,
         'operations'   => theme('links', $operations),
       ),
-//      'class' => (!empty($provider->disabled) ? ' oauthconnector-provider-disabled' : ''),
+      'class' => (!empty($provider->disabled) ? ' oauthconnector-provider-disabled' : ''),
     );
 
     if (empty($rows[$provider->name]['data']['consumer_key'])) {
       $rows[$provider->name]['data']['consumer_key'] = array(
-        'data'  => t('Missing'),
+        'data'  => t('Missing') . (empty($provider->disabled) ? ' (' . l(t('Add'), 'admin/build/oauthconnector/' . $provider->name . '/edit') . ')' : ''),
         'class' => 'oauthconnector-provider-warning',
       );
     }
@@ -60,7 +87,7 @@ function oauthconnector_list_provider($js = NULL) {
 
   $table = theme('table', $header, $rows, array('id' => 'oauthconnector-list-provider'));
 
-  //drupal_add_css(drupal_get_path('module', 'oauthconnector') . '/css/oauthconnector.admin.css');
+  drupal_add_css(drupal_get_path('module', 'oauthconnector') . '/oauthconnector.admin.css');
 
   return $table;
 }
@@ -152,7 +179,6 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
     '#description'   => t('Your consumer key provided by the OAuth provider.'),
     '#size'          => 32,
     '#maxlength'     => 32,
-    '#required'      => TRUE,
     '#default_value' => $provider->consumer_key,
   );
 
@@ -162,7 +188,6 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
     '#description'   => t('Your consumer secret provided by the OAuth provider.'),
     '#size'          => 32,
     '#maxlength'     => 32,
-    '#required'      => TRUE,
     '#default_value' => $provider->consumer_secret,
   );
 
@@ -247,4 +272,65 @@ function oauthconnector_export_provider(&$form_state, $provider) {
   );
 
   return $form;
+}
+
+/**
+ * Provide a form to confirm deletion of a provider.
+ */
+function oauthconnector_delete_confirm_provider(&$form_state, $provider) {
+  if (!is_object($provider)) {
+    $provider = oauthconnector_provider_load($provider);
+  }
+  if ($provider->export_type == (EXPORT_IN_CODE | EXPORT_IN_DATABASE)) {
+    $title  = t('Are you sure you want to revert the provider "@name"?', array('@name' => $provider->title));
+    $submit = t('Revert');
+  }
+  elseif ($provider->export_type != EXPORT_IN_CODE) {
+    $title  = t('Are you sure you want to delete the provider "@name"?', array('@name' => $provider->title));
+    $submit = t('Delete');
+  }
+  else {
+    drupal_not_found();
+    die; // legitimate
+  }
+  $form['provider'] = array('#type' => 'value', '#value' => $provider);
+  return confirm_form($form,
+    $title,
+    !empty($_GET['destination']) ? $_GET['destination'] : 'admin/build/oauthconnector',
+    t('This action cannot be undone.'),
+    $submit, t('Cancel')
+  );
+}
+
+/**
+ * Handle the submit button to delete a provider.
+ */
+function oauthconnector_delete_confirm_provider_submit($form, &$form_state) {
+  $preset = $form_state['values']['provider'];
+  oauthconnector_provider_delete($preset);
+  $form_state['redirect'] = 'admin/build/oauthconnector';
+}
+
+/**
+ * Enable a default provider.
+ */
+function oauthconnector_enable_provider($provider) {
+  if (!is_object($provider)) {
+    $provider = oauthconnector_provider_load($provider);
+  }
+  ctools_include('export');
+  ctools_export_set_status('oauthconnector_provider', $provider->name, FALSE);
+  drupal_goto();
+}
+
+/**
+ * Disable a default provider.
+ */
+function oauthconnector_disable_provider($provider) {
+  if (!is_object($provider)) {
+    $provider = oauthconnector_provider_load($provider);
+  }
+  ctools_include('export');
+  ctools_export_set_status('oauthconnector_provider', $provider->name, TRUE);
+  drupal_goto();
 }

@@ -64,6 +64,7 @@ function oauthconnector_schema() {
       // Wouldn't a better separation be for oauthconnector_provider to contain the
       // description of a provider and for OAuth Common to contain the credentials?
       // Makes for better exportability
+      // - Currently needed as a connection between OAuth Common and OAuth Connector
       'consumer_key' => array(
         'description' => t('The OAuth consumer to use when logging in users'),
         'type'        => 'varchar',

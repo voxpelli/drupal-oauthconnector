@@ -7,6 +7,7 @@
  */
 
 //TODO: Make something with the name - do we really want to and can we really import them?
+//TODO: Remove the URL from the OAuth Connector Provider? It isn't used anywhere?
 
 /* ************************************************************************* *
  * THEME FUNCTIONS
@@ -29,15 +30,7 @@ function oauthconnector_theme() {
  * Theme function for the button
  */
 function theme_oauthconnector_button() {
-  $content = '';
-  $providers = oauthconnector_provider_load_all();
-  foreach ($providers as $provider) {
-    //TODO: Adding one form for each provider results in a lot of forms and a lot of overhead - change it!
-    if ($provider->consumer_key) {
-      $content .= drupal_get_form('oauthconnector_button_form', $provider);
-    }
-  }
-  return $content;
+  return drupal_get_form('oauthconnector_button_form');
 }
 
 
@@ -102,6 +95,22 @@ function oauthconnector_menu() {
     'page callback'  => 'drupal_get_form',
     'page arguments' => array('oauthconnector_export_provider', 3),
     'type'           => MENU_LOCAL_TASK,
+  ) + $base;
+  $items['admin/build/oauthconnector/%oauthconnector_provider/delete'] = array(
+    'title'          => 'Delete provider',
+    'page callback'  => 'drupal_get_form',
+    'page arguments' => array('oauthconnector_delete_confirm_provider', 3),
+    'type'           => MENU_CALLBACK,
+  ) + $base;
+  $items['admin/build/oauthconnector/%oauthconnector_provider/disable'] = array(
+    'page callback'  => 'oauthconnector_disable_provider',
+    'page arguments' => array(3),
+    'type'           => MENU_CALLBACK,
+  ) + $base;
+  $items['admin/build/oauthconnector/%oauthconnector_provider/enable'] = array(
+    'page callback'  => 'oauthconnector_enable_provider',
+    'page arguments' => array(3),
+    'type'           => MENU_CALLBACK,
   ) + $base;
 
   return $items;
@@ -185,7 +194,7 @@ function oauthconnector_provider_save($provider) {
   $update = (isset($provider->pid)) ? array('pid') : array();
 
   //TODO: Update the OAuth Common as well?
-  if (!empty($provider->consumer_key)) {
+  if (!empty($provider->consumer_key) && !empty($provider->consumer_secret)) {
     $consumer = DrupalOAuthConsumer::load($provider->consumer_key, FALSE);
     if ($consumer) {
       $consumer->secret = $provider->consumer_secret;
@@ -253,21 +262,26 @@ function _oauthconnector_button() {
   );
 }
 
-function oauthconnector_button_form(&$form_state, $provider) {
-  return array(
-    'provider' => array(
-      '#type' => 'value',
-      '#value' => $provider,
-    ),
-    'login' => array(
-      '#type'  => 'submit',
-      '#value' => t('Connect with !title', array('!title' => $provider->title)),
-    ),
-  );
+function oauthconnector_button_form(&$form_state) {
+  $form = array();
+  $providers = oauthconnector_provider_load_all();
+  foreach ($providers as $provider) {
+    if ($provider->consumer_key) {
+      $form['login_' . $provider->name] = array(
+        '#type'  => 'submit',
+        '#value' => t('Connect with !title', array('!title' => $provider->title)),
+        'provider' => array(
+          '#type'  => 'value',
+          '#value' => $provider,
+        ),
+      );
+    }
+  }
+  return $form;
 }
 
 function oauthconnector_button_form_submit($form, &$form_state) {
-  $provider = $form_state['values']['provider'];
+  $provider = $form_state['clicked_button']['provider']['#value'];
 
   $consumer_token = DrupalOAuthConsumer::load($provider->consumer_key, FALSE);
 

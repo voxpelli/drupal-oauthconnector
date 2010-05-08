@@ -7,3 +7,7 @@
 #oauthconnector-list-provider td.oauthconnector-provider-warning {
   background-color: #fd4;
 }
+
+#oauthconnector-list-provider tr.oauthconnector-provider-disabled  td.oauthconnector-provider-warning {
+  background-color: inherit;
+}
