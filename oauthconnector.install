@@ -68,7 +68,7 @@ function oauthconnector_schema() {
       'consumer_key' => array(
         'description' => t('The OAuth consumer to use when logging in users'),
         'type'        => 'varchar',
-        'length'      => 32, //TODO: Check if this is really enough according to the spec?
+        'length'      => 255,
         'not null'    => TRUE,
         'no export'   => TRUE,
       ),
