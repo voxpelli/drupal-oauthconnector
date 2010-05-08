@@ -8,6 +8,9 @@
 
 //TODO: Make something with the name - do we really want to and can we really import them?
 //TODO: Trim URL of any trailing slashes/spaces
+//TODO: Add support for XML
+//TODO: Add support for fetching names
+//TODO: Add support for good looking names
 
 /* ************************************************************************* *
  * THEME FUNCTIONS
