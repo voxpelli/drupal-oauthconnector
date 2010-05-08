@@ -125,12 +125,12 @@ function oauthconnector_oauth_common_authorized($consumer_token, $access_token, 
     $access_token->delete();
     unset($_SESSION['oauthconnector_request_key']);
 
-    $connectors = oauthconnector_provider_load_all();
-    foreach ($connectors as $connector) {
-      if ($connector->consumer_key == $consumer_token->key) {
-        $external_user = _oauthconnector_fetch_user($connector, $access_token, $consumer_token);
-        if (!empty($external_user[$connector->mapping['uid']])) {
-          _connector_log_in('oauthconnector', $connector->name . '__' . $external_user[$connector->mapping['uid']]);
+    $providers = oauthconnector_provider_load_all();
+    foreach ($providers as $provider) {
+      if ($provider->consumer_key == $consumer_token->key) {
+        $external_user = _oauthconnector_fetch_user($provider, $access_token, $consumer_token);
+        if (!empty($external_user[$provider->mapping['uid']])) {
+          _connector_log_in('oauthconnector', $provider->name . '__' . $external_user[$provider->mapping['uid']]);
         }
         else {
           //TODO: Add error message
@@ -303,20 +303,22 @@ function oauthconnector_button_form_submit($form, &$form_state) {
   drupal_goto($auth_url);
 }
 
-function _oauthconnector_fetch_user($connector, $access_token, $consumer_token = NULL) {
+function _oauthconnector_fetch_user($provider, $access_token, $consumer_token = NULL) {
   // Load the consumer token if needed
   if (!$consumer_token) {
     $consumer_token = DrupalOAuthConsumer::load($access_token->consumer_key, FALSE);
   }
 
+  $sig_method = DrupalOAuthClient::signatureMethod(substr(strtolower($provider->consumer_advanced['signature method']), 5));
+
   // Set up the rest client
-  $auth   = new HttpClientOAuth($consumer_token, $access_token, new OAuthSignatureMethod_HMAC('sha1'));
+  $auth   = new HttpClientOAuth($consumer_token, $access_token, $sig_method);
   $client = new HttpClient($auth, new HttpClientBaseFormatter(HttpClientBaseFormatter::FORMAT_PHP));
 
   // Fetch the external user
   $info = FALSE;
   try {
-    $info = (array)$client->post($connector->user_resource, array());
+    $info = (array)$client->post($provider->user_resource, array());
   } catch (Exception $e) {
     //TODO: Change to watchdog?
     drupal_set_message(t('Failed to fetch user info for login: @message', array(
