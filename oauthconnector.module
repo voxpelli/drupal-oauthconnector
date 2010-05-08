@@ -7,7 +7,7 @@
  */
 
 //TODO: Make something with the name - do we really want to and can we really import them?
-//TODO: Remove the URL from the OAuth Connector Provider? It isn't used anywhere?
+//TODO: Trim URL of any trailing slashes/spaces
 
 /* ************************************************************************* *
  * THEME FUNCTIONS
@@ -204,6 +204,7 @@ function oauthconnector_provider_save($provider) {
     if ($consumer) {
       $consumer->secret = $provider->consumer_secret;
       $consumer->configuration['provider_url'] = $provider->url;
+      $consumer->configuration['access_endpoint'] = $provider->consumer_advanced['access token endpoint'];
       $consumer->write(TRUE);
     }
     else {
@@ -226,6 +227,7 @@ function oauthconnector_provider_save($provider) {
  * @return void
  */
 function oauthconnector_provider_delete($provider) {
+  //TODO: Also delete data from OAuth Common
   db_query("DELETE FROM {oauthconnector_provider} WHERE name = '%s' AND pid = %d", $provider->name, $provider->pid);
 }
 
@@ -289,13 +291,14 @@ function oauthconnector_button_form_submit($form, &$form_state) {
   $provider = $form_state['clicked_button']['provider']['#value'];
 
   $consumer_token = DrupalOAuthConsumer::load($provider->consumer_key, FALSE);
+  $sig_method = DrupalOAuthClient::signatureMethod(substr(strtolower($provider->consumer_advanced['signature method']), 5));
 
-  $client = new DrupalOAuthClient($consumer_token);
-  $request_token = $client->getRequestToken();
+  $client = new DrupalOAuthClient($consumer_token, NULL, $sig_method); //TODO: Customize signaturemethod here
+  $request_token = $client->getRequestToken($provider->consumer_advanced['request token endpoint']); //TODO: Add request_endpoint here?
   $request_token->write();
 
   $_SESSION['oauthconnector_request_key'] = $request_token->key;
-  $auth_url = $client->getAuthorizationUrl();
+  $auth_url = $client->getAuthorizationUrl(NULL, $provider->consumer_advanced['authorization endpoint']); //TODO: Add some endpoints here?
 
   drupal_goto($auth_url);
 }
@@ -313,7 +316,7 @@ function _oauthconnector_fetch_user($connector, $access_token, $consumer_token =
   // Fetch the external user
   $info = FALSE;
   try {
-    $info = (array)$client->post($connector->endpoint, array());
+    $info = (array)$client->post($connector->user_resource, array());
   } catch (Exception $e) {
     //TODO: Change to watchdog?
     drupal_set_message(t('Failed to fetch user info for login: @message', array(

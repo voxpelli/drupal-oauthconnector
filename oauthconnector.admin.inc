@@ -13,12 +13,12 @@
  */
 function oauthconnector_list_provider($js = NULL) {
   $header = array(
-    array('data' => t('Title'),        'class' => 'oauthconnector-provider-title'),
-    array('data' => t('URL'),          'class' => 'oauthconnector-provider-url'),
-    array('data' => t('Endpoint'),     'class' => 'oauthconnector-provider-endpoint'),
-    array('data' => t('Consumer Key'), 'class' => 'oauthconnector-provider-consumer-key'),
-    array('data' => t('Storage'),      'class' => 'oauthconnector-provider-storage'),
-    array('data' => t('Operations'),   'class' => 'oauthconnector-provider-operations'),
+    array('data' => t('Title'),         'class' => 'oauthconnector-provider-title'),
+    array('data' => t('URL'),           'class' => 'oauthconnector-provider-url'),
+    array('data' => t('User Resource'), 'class' => 'oauthconnector-provider-resource'),
+    array('data' => t('Consumer Key'),  'class' => 'oauthconnector-provider-consumer-key'),
+    array('data' => t('Storage'),       'class' => 'oauthconnector-provider-storage'),
+    array('data' => t('Operations'),    'class' => 'oauthconnector-provider-operations'),
   );
 
   $providers = oauthconnector_provider_load_all();
@@ -67,12 +67,12 @@ function oauthconnector_list_provider($js = NULL) {
 
     $rows[$provider->name] = array(
       'data' => array(
-        'title'        => check_plain($provider->title),
-        'url'          => l($provider->url, $provider->url),
-        'endpoint'     => check_plain($provider->endpoint),
-        'consumer_key' => check_plain($provider->consumer_key),
-        'storage'      => $provider->type,
-        'operations'   => theme('links', $operations),
+        'title'         => check_plain($provider->title),
+        'url'           => l($provider->url, $provider->url),
+        'user_resource' => check_plain($provider->user_resource),
+        'consumer_key'  => check_plain($provider->consumer_key),
+        'storage'       => $provider->type,
+        'operations'    => theme('links', $operations),
       ),
       'class' => (!empty($provider->disabled) ? ' oauthconnector-provider-disabled' : ''),
     );
@@ -164,14 +164,14 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
     '#default_value' => $provider->url,
   );
 
-  $form['endpoint'] = array(
+  $form['user_resource'] = array(
     '#type'          => 'textfield',
-    '#title'         => t('Endpoint'),
-    '#description'   => t('The API endpoint for the user info action.'),
+    '#title'         => t('User Resource'),
+    '#description'   => t('The URL of the API resource representing the authorized user.'),
     '#size'          => 32,
     '#maxlength'     => 255,
     '#required'      => TRUE,
-    '#default_value' => $provider->endpoint,
+    '#default_value' => $provider->user_resource,
   );
 
   //TODO: Check that the limits for consumer key and secret are sensible - do the OAuth standard say anything about the length of these?
@@ -194,12 +194,60 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
     '#default_value' => $provider->consumer_secret,
   );
 
+  $form['consumer_advanced'] = array(
+    '#type'        => 'fieldset',
+    '#title'       => t('OAuth Consumer Advanced Settings'),
+    '#tree'        => TRUE,
+    '#collapsible' => TRUE,
+    '#collapsed'   => TRUE, //TODO: Change if a value is non-default
+  );
+
+  $sign_methods = array(
+    'HMAC-SHA1' => 'HMAC-SHA1',
+  );
+  foreach (hash_algos() as $algo) {
+    $sign_methods['HMAC-' . strtoupper($algo)] = 'HMAC-' . strtoupper($algo);
+  }
+  $sign_methods['PLAINTEXT'] = 'PLAINTEXT';
+  $form['consumer_advanced']['signature method'] = array(
+    '#type'          => 'select',
+    '#title'         => t('Signature method'),
+    '#options'       => $sign_methods,
+    '#required'      => TRUE,
+    '#default_value' => $provider->consumer_advanced['signature method'],
+  );
+
+  $form['consumer_advanced']['request token endpoint'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Request token endpoint'),
+    '#size'          => 32,
+    '#maxlength'     => 255,
+    '#required'      => TRUE,
+    '#default_value' => $provider->consumer_advanced['request token endpoint'],
+  );
+
+  $form['consumer_advanced']['authorization endpoint'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Authorization endpoint'),
+    '#size'          => 32,
+    '#maxlength'     => 255,
+    '#required'      => TRUE,
+    '#default_value' => $provider->consumer_advanced['authorization endpoint'],
+  );
+
+  $form['consumer_advanced']['access token endpoint'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Access token endpoint'),
+    '#size'          => 32,
+    '#maxlength'     => 255,
+    '#required'      => TRUE,
+    '#default_value' => $provider->consumer_advanced['access token endpoint'],
+  );
+
   $form['mapping'] = array(
     '#type'        => 'fieldset',
     '#title'       => t('Mapping'),
     '#description' => t('Map the attributes from the API response to the attributes useable by OAuth Connector.'),
-    '#collapsible' => TRUE,
-    '#collapsed'   => FALSE,
     '#tree'        => TRUE,
   );
 
@@ -245,8 +293,8 @@ function oauthconnector_edit_form_provider_validate($form, &$form_state) {
   if (!valid_url($values['url'])) {
     form_error($form['url'], t('The url is not valid.'));
   }
-  if (!valid_url($values['endpoint'])) {
-    form_error($form['endpoint'], t('The endpoint is not a valid url.'));
+  if (!valid_url($values['user_resource'])) {
+    form_error($form['user_resource'], t('The user resource is not a valid url.'));
   }
   //TODO: Maybe add some more validation? Eg. check for whitespace in empty mappings?
 }
@@ -259,13 +307,14 @@ function oauthconnector_edit_form_provider_submit($form, &$form_state) {
 
   $provider = $values['provider'];
 
-  $provider->name            = $values['name'];
-  $provider->title           = $values['title'];
-  $provider->url             = $values['url'];
-  $provider->endpoint        = $values['endpoint'];
-  $provider->consumer_key    = $values['consumer_key'];
-  $provider->consumer_secret = $values['consumer_secret'];
-  $provider->mapping         = array_filter($values['mapping']);
+  $provider->name              = $values['name'];
+  $provider->title             = $values['title'];
+  $provider->url               = $values['url'];
+  $provider->user_resource     = $values['user_resource'];
+  $provider->consumer_key      = $values['consumer_key'];
+  $provider->consumer_secret   = $values['consumer_secret'];
+  $provider->consumer_advanced = $values['consumer_advanced'];
+  $provider->mapping           = array_filter($values['mapping']);
 
   if (empty($provider->pid)) {
     drupal_set_message(t('Your new provider %title has been saved.', array('%title' => $provider->title)));

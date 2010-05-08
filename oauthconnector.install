@@ -54,8 +54,8 @@ function oauthconnector_schema() {
         'length'      => 255,
         'not null'    => TRUE,
       ),
-      'endpoint' => array(
-        'description' => t('The API endpoint for the provider.'),
+      'user_resource' => array(
+        'description' => t('The URL of the API resource representing the authorized user.'),
         'type'        => 'varchar',
         'length'      => 255,
         'not null'    => TRUE,
@@ -71,6 +71,19 @@ function oauthconnector_schema() {
         'length'      => 32, //TODO: Check if this is really enough according to the spec?
         'not null'    => TRUE,
         'no export'   => TRUE,
+      ),
+      'consumer_advanced' => array(
+        'type'           => 'text',
+        'size'           => 'big',
+        'description'    => 'Serialized advanced settings for an oauth consumer, like signature method.',
+        'not null'       => TRUE,
+        'serialize'      => TRUE,
+        'object default' => array(
+          'signature method'       => 'HMAC-SHA1',
+          'request token endpoint' => '/oauth/request_token',
+          'authorization endpoint' => '/oauth/authorize',
+          'access token endpoint'  => '/oauth/access_token',
+        ),
       ),
       'mapping' => array(
         'type'           => 'text',
