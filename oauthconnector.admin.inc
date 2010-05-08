@@ -110,6 +110,9 @@ function oauthconnector_edit_provider($provider) {
   if (!is_object($provider)) {
     $provider = oauthconnector_provider_load($provider);
   }
+  if (!empty($provider->consumer_key) && empty($provider->consumer_secret)) {
+    $provider->consumer_secret = DrupalOAuthConsumer::load($provider->consumer_key, FALSE)->secret;
+  }
   if ($provider && !empty($provider->title)) {
     drupal_set_title(check_plain($provider->title));
   }
