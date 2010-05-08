@@ -204,6 +204,7 @@ function oauthconnector_provider_save($provider) {
     if ($consumer) {
       $consumer->secret = $provider->consumer_secret;
       $consumer->configuration['provider_url'] = $provider->url;
+      $consumer->configuration['signature_method'] = $provider->consumer_advanced['signature method'];
       $consumer->configuration['access_endpoint'] = $provider->consumer_advanced['access token endpoint'];
       $consumer->write(TRUE);
     }
