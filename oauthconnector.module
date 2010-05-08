@@ -129,7 +129,12 @@ function oauthconnector_oauth_common_authorized($consumer_token, $access_token, 
     foreach ($connectors as $connector) {
       if ($connector->consumer_key == $consumer_token->key) {
         $external_user = _oauthconnector_fetch_user($connector, $access_token, $consumer_token);
-        _connector_log_in('oauthconnector', $connector->name . '__' .$external_user['uid']);
+        if (!empty($external_user[$connector->mapping['uid']])) {
+          _connector_log_in('oauthconnector', $connector->name . '__' . $external_user[$connector->mapping['uid']]);
+        }
+        else {
+          //TODO: Add error message
+        }
         break;
       }
     }

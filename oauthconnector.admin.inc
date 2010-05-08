@@ -194,6 +194,26 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
     '#default_value' => $provider->consumer_secret,
   );
 
+  $form['mapping'] = array(
+    '#type'        => 'fieldset',
+    '#title'       => t('Mapping'),
+    '#description' => t('Map the attributes from the API response to the attributes useable by OAuth Connector.'),
+    '#collapsible' => TRUE,
+    '#collapsed'   => FALSE,
+    '#tree'        => TRUE,
+  );
+
+  //TODO: Change this into a loop of useable values that can be mapped?
+  $form['mapping']['uid'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('User ID field'),
+    '#description'   => t('The name of a response field containing a unique ID of the user that has been logged in.'),
+    '#size'          => 32,
+    '#maxlength'     => 32,
+    '#required'      => TRUE,
+    '#default_value' => empty($provider->mapping['uid']) ? '' : $provider->mapping['uid'],
+  );
+
   $label = empty($provider->pid) ? t('Save and proceed') : t('Save');
   $form['submit'] = array(
     '#type'  => 'submit',
@@ -228,21 +248,24 @@ function oauthconnector_edit_form_provider_validate($form, &$form_state) {
   if (!valid_url($values['endpoint'])) {
     form_error($form['endpoint'], t('The endpoint is not a valid url.'));
   }
-  //TODO: Maybe add some more validation?
+  //TODO: Maybe add some more validation? Eg. check for whitespace in empty mappings?
 }
 
 /**
  * Process submission of the provider edit form.
  */
 function oauthconnector_edit_form_provider_submit($form, &$form_state) {
-  $provider = $form_state['values']['provider'];
+  $values = $form_state['values'];
 
-  $provider->name            = $form_state['values']['name'];
-  $provider->title           = $form_state['values']['title'];
-  $provider->url             = $form_state['values']['url'];
-  $provider->endpoint        = $form_state['values']['endpoint'];
-  $provider->consumer_key    = $form_state['values']['consumer_key'];
-  $provider->consumer_secret = $form_state['values']['consumer_secret'];
+  $provider = $values['provider'];
+
+  $provider->name            = $values['name'];
+  $provider->title           = $values['title'];
+  $provider->url             = $values['url'];
+  $provider->endpoint        = $values['endpoint'];
+  $provider->consumer_key    = $values['consumer_key'];
+  $provider->consumer_secret = $values['consumer_secret'];
+  $provider->mapping         = array_filter($values['mapping']);
 
   if (empty($provider->pid)) {
     drupal_set_message(t('Your new provider %title has been saved.', array('%title' => $provider->title)));

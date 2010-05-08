@@ -72,6 +72,14 @@ function oauthconnector_schema() {
         'not null'    => TRUE,
         'no export'   => TRUE,
       ),
+      'mapping' => array(
+        'type'           => 'text',
+        'size'           => 'big',
+        'description'    => 'Serialized mapping between the response of the API and Connector properties.',
+        'not null'       => TRUE,
+        'serialize'      => TRUE,
+        'object default' => array(),
+      ),
     ),
     'primary key' => array('pid'),
     'unique keys' => array(
