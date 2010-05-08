@@ -190,7 +190,7 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
     '#title'         => t('OAuth Consumer Secret'),
     '#description'   => t('Your consumer secret provided by the OAuth provider.'),
     '#size'          => 32,
-    '#maxlength'     => 32,
+    '#maxlength'     => 255,
     '#default_value' => $provider->consumer_secret,
   );
 
