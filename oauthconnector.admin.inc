@@ -32,6 +32,10 @@ function oauthconnector_list_provider($js = NULL) {
         'title' => t('Edit'),
         'href' => 'admin/build/oauthconnector/' . $provider->name . '/edit',
       );
+      $operations[] = array(
+        'title' => t('Export'),
+        'href' => 'admin/build/oauthconnector/' . $provider->name . '/export',
+      );
 //    }
 
     $rows[$provider->name] = array(
@@ -193,8 +197,8 @@ function oauthconnector_edit_form_provider_validate($form, &$form_state) {
   if (!valid_url($values['url'])) {
     form_error($form['url'], t('The url is not valid.'));
   }
-  elseif (substr($values['url'], -1) == '/') {
-    form_error($form['url'], t('The url is not valid - should not end with a slash ("/").'));
+  if (!valid_url($values['endpoint'])) {
+    form_error($form['endpoint'], t('The endpoint is not a valid url.'));
   }
   //TODO: Maybe add some more validation?
 }
@@ -222,4 +226,25 @@ function oauthconnector_edit_form_provider_submit($form, &$form_state) {
   }
 
   $form_state['redirect'] = 'admin/build/oauthconnector';
+}
+
+/**
+ * Page callback to export a provider to PHP code.
+ */
+function oauthconnector_export_provider(&$form_state, $provider) {
+  if (!is_object($provider)) {
+    $provider = oauthconnector_provider_load($provider);
+  }
+  drupal_set_title(check_plain($provider->title));
+
+  $code = oauthconnector_provider_export($provider);
+  $lines = substr_count($code, "\n");
+  $form['code'] = array(
+    '#type'          => 'textarea',
+    '#title'         => $provider->name,
+    '#default_value' => $code,
+    '#rows'          => $lines,
+  );
+
+  return $form;
 }

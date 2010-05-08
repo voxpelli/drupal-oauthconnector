@@ -29,7 +29,15 @@ function oauthconnector_theme() {
  * Theme function for the button
  */
 function theme_oauthconnector_button() {
-  return drupal_get_form('oauthconnector_button_form');
+  $content = '';
+  $providers = oauthconnector_provider_load_all();
+  foreach ($providers as $provider) {
+    //TODO: Adding one form for each provider results in a lot of forms and a lot of overhead - change it!
+    if ($provider->consumer_key) {
+      $content .= drupal_get_form('oauthconnector_button_form', $provider);
+    }
+  }
+  return $content;
 }
 
 
@@ -89,6 +97,12 @@ function oauthconnector_menu() {
     'page arguments' => array(3),
     'type'           => MENU_LOCAL_TASK,
   ) + $base;
+  $items['admin/build/oauthconnector/%oauthconnector_provider/export'] = array(
+    'title'          => 'Export provider',
+    'page callback'  => 'drupal_get_form',
+    'page arguments' => array('oauthconnector_export_provider', 3),
+    'type'           => MENU_LOCAL_TASK,
+  ) + $base;
 
   return $items;
 }
@@ -140,7 +154,7 @@ function oauthconnector_provider_new() {
 function oauthconnector_provider_load($name) {
   ctools_include('export');
   $result = ctools_export_load_object('oauthconnector_provider', 'names', array($name));
-  //TODO: Load some stuff from OAuth Common here as well?
+  //TODO: Load some stuff from OAuth Common here as well? Perhaps the entire consumer?
   if (isset($result[$name])) {
     return $result[$name];
   }
@@ -148,6 +162,8 @@ function oauthconnector_provider_load($name) {
     return FALSE;
   }
 }
+
+//TODO: Add method for loading only "active" oauthconnectors? Eg. those with a consumer_key? Or make it impossible to enable a provider without also supplying a consumer_key and secret?
 
 /**
  * Load all providers.
@@ -204,25 +220,26 @@ function oauthconnector_provider_delete($provider) {
  *
  * @return string
  */
-/*function oauthconnector_provider_export($provider, $indent = '') {
+function oauthconnector_provider_export($provider, $indent = '') {
+  //TODO: Try to make the exported provider disabled as default?
   ctools_include('export');
-  $output = ctools_export_object('services_endpoint', $endpoint, $indent);
+  $output = ctools_export_object('oauthconnector_provider', $provider, $indent);
   return $output;
-}*/
+}
 
 /**
  * Lists all available providers.
  *
  * @return array
  */
-/*function oauthconnector_provider_list() {
+function oauthconnector_provider_list() {
   $return = array();
-  $endpoints = services_endpoint_load_all();
-  foreach ($endpoints as $endpoint) {
-    $return[$endpoint->name] = $endpoint->title;
+  $providers = oauthconnector_provider_load_all();
+  foreach ($providers as $provider) {
+    $return[$provider->name] = $provider->title;
   }
   return $return;
-}*/
+}
 
 
 /* ************************************************************************* *
@@ -236,34 +253,30 @@ function _oauthconnector_button() {
   );
 }
 
-function oauthconnector_button_form() {
+function oauthconnector_button_form(&$form_state, $provider) {
   return array(
+    'provider' => array(
+      '#type' => 'value',
+      '#value' => $provider,
+    ),
     'login' => array(
       '#type'  => 'submit',
-      '#value' => 'Connect with OAuth',
+      '#value' => t('Connect with !title', array('!title' => $provider->title)),
     ),
   );
 }
 
 function oauthconnector_button_form_submit($form, &$form_state) {
-  //TODO: Fix this - it's kind of not using the correct properties right now?
-//  $consumer_token = DrupalOAuthConsumer::load(variable_get('oauthconnector_consumer_key', NULL), FALSE);
+  $provider = $form_state['values']['provider'];
 
-  $consumer_key    = variable_get('oauthconnector_consumer_key', NULL);
-  $consumer_secret = variable_get('oauthconnector_consumer_secret', NULL);
-  $consumer_token  = new DrupalOAuthConsumer($consumer_key, $consumer_secret, 'oob', FALSE, array(
-    'configuration' => array(
-      //'provider_url' => 'http://twitter.com',
-      'provider_url' => 'http://sandbox.local',
-    ),
-  ));
+  $consumer_token = DrupalOAuthConsumer::load($provider->consumer_key, FALSE);
 
   $client = new DrupalOAuthClient($consumer_token);
   $request_token = $client->getRequestToken();
   $request_token->write();
-  $auth_url = $client->getAuthorizationUrl();
 
   $_SESSION['oauthconnector_request_key'] = $request_token->key;
+  $auth_url = $client->getAuthorizationUrl();
 
   drupal_goto($auth_url);
 }
@@ -283,6 +296,7 @@ function _oauthconnector_fetch_user($connector, $access_token, $consumer_token =
   try {
     $info = (array)$client->post($connector->endpoint, array());
   } catch (Exception $e) {
+    //TODO: Change to watchdog?
     drupal_set_message(t('Failed to fetch user info for login: @message', array(
       '@message' => $e->getMessage(),
     )), 'error');
