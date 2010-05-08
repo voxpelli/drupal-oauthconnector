@@ -311,15 +311,17 @@ function _oauthconnector_fetch_user($provider, $access_token, $consumer_token = 
   }
 
   $sig_method = DrupalOAuthClient::signatureMethod(substr(strtolower($provider->consumer_advanced['signature method']), 5));
+  $format = ($provider->mapping['format'] == 'json' ? HttpClientBaseFormatter::FORMAT_JSON : HttpClientBaseFormatter::FORMAT_PHP);
 
   // Set up the rest client
   $auth   = new HttpClientOAuth($consumer_token, $access_token, $sig_method);
-  $client = new HttpClient($auth, new HttpClientBaseFormatter(HttpClientBaseFormatter::FORMAT_PHP));
+  $client = new HttpClient($auth, new HttpClientBaseFormatter($format));
 
   // Fetch the external user
   $info = FALSE;
+  $request_method = empty($provider->mapping['method post']) ? 'get' : 'post';
   try {
-    $info = (array)$client->post($provider->user_resource, array());
+    $info = (array)$client->{$request_method}($provider->user_resource, array());
   } catch (Exception $e) {
     //TODO: Change to watchdog?
     drupal_set_message(t('Failed to fetch user info for login: @message', array(

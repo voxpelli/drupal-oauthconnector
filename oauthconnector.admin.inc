@@ -251,6 +251,22 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
     '#tree'        => TRUE,
   );
 
+  $form['mapping']['method post'] = array(
+    '#type'          => 'checkbox',
+    '#title'         => t('Use POST method'),
+    '#default_value' => !empty($provider->mapping['method post']),
+  );
+
+  $form['mapping']['format'] = array(
+    '#type'  => 'radios',
+    '#title' => t('Response format'),
+    '#options' => array(
+      'json' => 'JSON',
+      'php'  => 'PHP',
+    ),
+    '#default_value' => empty($provider->mapping['format']) ? 'json' : $provider->mapping['format'],
+  );
+
   //TODO: Change this into a loop of useable values that can be mapped?
   $form['mapping']['uid'] = array(
     '#type'          => 'textfield',
