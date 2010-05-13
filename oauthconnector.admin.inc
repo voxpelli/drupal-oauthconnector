@@ -258,6 +258,10 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
       'title'       => t('Name'),
       'description' => t('A resource containing the name of the user.'),
     ),
+    'avatar' => array(
+      'title'       => t('Avatar'),
+      'description' => t('A resource containing the URL of the users avatar.'),
+    ),
   );
 
   foreach ($mappings as $key => $mapping) {
@@ -329,6 +333,7 @@ function oauthconnector_edit_form_provider_validate($form, &$form_state) {
       form_error($form['mapping']['fields'][$key]['resource'], t('The resource is not a valid url.'));
     }
   }
+  //TODO: Validate that all resources are either completely filled out or completely empty
   //TODO: Maybe add some more validation? Eg. check for whitespace in empty mappings?
 }
 

@@ -9,8 +9,6 @@
 //TODO: Make something with the name - do we really want to and can we really import them?
 //TODO: Trim URL of any trailing slashes/spaces
 //TODO: Add support for XML
-//TODO: Add support for fetching names
-//TODO: Add support for good looking names
 //TODO: Save the link between a provider specification and a consumer key in a separate table? Perhaps extend OAuth Commons GUI for that?
 //TODO: Add timeouts for when an API is down?
 
@@ -53,9 +51,9 @@ function oauthconnector_connector() {
   if (variable_get('oauthconnector_consumer_key', NULL) && variable_get('oauthconnector_consumer_secret', NULL)) {
     //TODO: Add 'information callback' and 'avatar callback' as well?
     $items['oauthconnector'] = array(
-      'button callback' => '_oauthconnector_button',
+      'button callback'      => '_oauthconnector_button',
       'information callback' => '_oauthconnector_info',
-      'cache' => 86400, //24 hours x 3600 seconds per hour
+      'avatar callback'      => '_oauthconnector_avatar',
     );
   }
 
@@ -307,6 +305,32 @@ function _oauthconnector_info($cid, $types, $uid) {
     if ($real_name) {
       //TODO: Some better error handling?
       $info = array('real name' => $real_name);
+    }
+  }
+
+  return $info;
+}
+
+/**
+ * Information callback
+ */
+function _oauthconnector_avatar($cid, $uid) {
+  $info = FALSE;
+
+  $cid = explode('__', $cid, 2);
+  $provider = oauthconnector_provider_load($cid[0]);
+
+  if (!empty($provider->mapping['fields']['avatar']['resource'])) {
+    $result = db_query("SELECT * FROM {oauth_common_token} WHERE uid = %d AND consumer_key = '%s' AND type = 'access' AND provider_token = 0", array(
+      ':uid' => $uid,
+      ':consumer_key' => $provider->consumer_key,
+    ));
+    $token = DrupalOAuthToken::fromResult($result);
+
+    $info = _oauthconnector_fetch_field('avatar', $provider, $token);
+    //TODO: Some better error handling?
+    if (empty($info)) {
+      $info = FALSE;
     }
   }
 
