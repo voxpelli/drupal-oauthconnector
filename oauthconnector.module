@@ -138,9 +138,9 @@ function oauthconnector_oauth_common_authorized($consumer_token, $access_token, 
         //TODO: Optionally remove the access token - if the provider was only used for log in
         //      and not for fetching any data then we don't need the access token anymore.
         //$access_token->delete();
-        $external_user = _oauthconnector_fetch_user($provider, $access_token, $consumer_token);
-        if (!empty($external_user[$provider->mapping['uid']])) {
-          if (_connector_log_in('oauthconnector', $provider->name . '__' . $external_user[$provider->mapping['uid']])) {
+        $external_uid = _oauthconnector_fetch_field('uid', $provider, $access_token, $consumer_token);
+        if (!empty($external_uid)) {
+          if (_connector_log_in('oauthconnector', $provider->name . '__' . $external_uid)) {
             //TODO: Remove old access tokens?
             //TODO: Don't link token to local UID - link to external UID
             $access_token->uid = $user->uid;
@@ -296,18 +296,17 @@ function _oauthconnector_info($cid, $types, $uid) {
   $cid = explode('__', $cid, 2);
   $provider = oauthconnector_provider_load($cid[0]);
 
-  if (!empty($provider->mapping['real name'])) {
+  if (!empty($provider->mapping['fields']['real name']['resource'])) {
     $result = db_query("SELECT * FROM {oauth_common_token} WHERE uid = %d AND consumer_key = '%s' AND type = 'access' AND provider_token = 0", array(
       ':uid' => $uid,
       ':consumer_key' => $provider->consumer_key,
     ));
     $token = DrupalOAuthToken::fromResult($result);
 
-    $external_user = _oauthconnector_fetch_user($provider, $token);
-
-    if ($external_user) {
+    $real_name = _oauthconnector_fetch_field('real name', $provider, $token);
+    if ($real_name) {
       //TODO: Some better error handling?
-      $info = array('real name' => $external_user[$provider->mapping['real name']]);
+      $info = array('real name' => $real_name);
     }
   }
 
@@ -356,30 +355,46 @@ function oauthconnector_button_form_submit($form, &$form_state) {
 }
 
 //TODO: Add caching of requests?
-function _oauthconnector_fetch_user($provider, $access_token, $consumer_token = NULL) {
-  // Load the consumer token if needed
-  if (!$consumer_token) {
-    $consumer_token = DrupalOAuthConsumer::load($provider->consumer_key, FALSE);
+function _oauthconnector_fetch_field($field, $provider, $access_token, $consumer_token = NULL) {
+  static $cache = array();
+
+  $field = $provider->mapping['fields'][$field];
+
+  if (!isset($cache[$access_token->token_key])) {
+    $cache[$access_token->token_key] = array();
+  }
+  if (!isset($cache[$access_token->token_key][$field['method post']])) {
+    $cache[$access_token->token_key][$field['method post']] = array();
   }
 
-  $sig_method = DrupalOAuthClient::signatureMethod(substr(strtolower($provider->consumer_advanced['signature method']), 5));
-  $format = ($provider->mapping['format'] == 'json' ? HttpClientBaseFormatter::FORMAT_JSON : HttpClientBaseFormatter::FORMAT_PHP);
+  if (!isset($cache[$access_token->token_key][$field['method post']][$field['resource']])) {
+    // Load the consumer token if needed
+    if (!$consumer_token) {
+      $consumer_token = DrupalOAuthConsumer::load($provider->consumer_key, FALSE);
+    }
 
-  // Set up the rest client
-  $auth   = new HttpClientOAuth($consumer_token, $access_token, $sig_method);
-  $client = new HttpClient($auth, new HttpClientBaseFormatter($format));
+    $sig_method = DrupalOAuthClient::signatureMethod(substr(strtolower($provider->consumer_advanced['signature method']), 5));
+    $format = ($provider->mapping['format'] == 'json' ? HttpClientBaseFormatter::FORMAT_JSON : HttpClientBaseFormatter::FORMAT_PHP);
 
-  // Fetch the external user
-  $info = FALSE;
-  $request_method = empty($provider->mapping['method post']) ? 'get' : 'post';
-  try {
-    $info = (array)$client->{$request_method}($provider->user_resource, array());
-  } catch (Exception $e) {
-    //TODO: Change to watchdog?
-    drupal_set_message(t('Failed to fetch user info for login: @message', array(
-      '@message' => $e->getMessage(),
-    )), 'error');
+    // Set up the rest client
+    $auth   = new HttpClientOAuth($consumer_token, $access_token, $sig_method);
+    $client = new HttpClient($auth, new HttpClientBaseFormatter($format));
+
+    // Fetch the external user
+    $request_method = empty($field['method post']) ? 'get' : 'post';
+    try {
+      $info = (array)$client->{$request_method}($field['resource'], array());
+      $cache[$access_token->token_key][$field['method post']][$field['resource']] = $info;
+    } catch (Exception $e) {
+      //TODO: Change to watchdog?
+      drupal_set_message(t('Failed to fetch user info for login: @message', array(
+        '@message' => $e->getMessage(),
+      )), 'error');
+    }
+  }
+  else {
+    $info = $cache[$access_token->token_key][$field['method post']][$field['resource']];
   }
 
-  return $info;
+  return (empty($info) || empty($info[$field['field']])) ? FALSE : $info[$field['field']];
 }

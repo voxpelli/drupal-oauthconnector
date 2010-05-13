@@ -59,12 +59,6 @@ function oauthconnector_schema() {
         'length'      => 255,
         'not null'    => TRUE,
       ),
-      'user_resource' => array(
-        'description' => t('The URL of the API resource representing the authorized user.'),
-        'type'        => 'varchar',
-        'length'      => 255,
-        'not null'    => TRUE,
-      ),
       //TODO: Should we really save the consumer key in oauthconnector_provider?
       // Wouldn't a better separation be for oauthconnector_provider to contain the
       // description of a provider and for OAuth Common to contain the credentials?

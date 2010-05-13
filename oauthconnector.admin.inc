@@ -15,7 +15,6 @@ function oauthconnector_list_provider($js = NULL) {
   $header = array(
     array('data' => t('Title'),         'class' => 'oauthconnector-provider-title'),
     array('data' => t('URL'),           'class' => 'oauthconnector-provider-url'),
-    array('data' => t('User Resource'), 'class' => 'oauthconnector-provider-resource'),
     array('data' => t('Consumer Key'),  'class' => 'oauthconnector-provider-consumer-key'),
     array('data' => t('Storage'),       'class' => 'oauthconnector-provider-storage'),
     array('data' => t('Operations'),    'class' => 'oauthconnector-provider-operations'),
@@ -69,7 +68,6 @@ function oauthconnector_list_provider($js = NULL) {
       'data' => array(
         'title'         => check_plain($provider->title),
         'url'           => l($provider->url, $provider->url),
-        'user_resource' => check_plain($provider->user_resource),
         'consumer_key'  => check_plain($provider->consumer_key),
         'storage'       => $provider->type,
         'operations'    => theme('links', $operations),
@@ -164,18 +162,6 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
     '#default_value' => $provider->url,
   );
 
-  $form['user_resource'] = array(
-    '#type'          => 'textfield',
-    '#title'         => t('User Resource'),
-    '#description'   => t('The URL of the API resource representing the authorized user.'),
-    '#size'          => 32,
-    '#maxlength'     => 255,
-    '#required'      => TRUE,
-    '#default_value' => $provider->user_resource,
-  );
-
-  //TODO: Check that the limits for consumer key and secret are sensible - do the OAuth standard say anything about the length of these?
-
   $form['consumer_key'] = array(
     '#type'          => 'textfield',
     '#title'         => t('OAuth Consumer Key'),
@@ -249,17 +235,12 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
     '#title'       => t('Mapping'),
     '#description' => t('Map the attributes from the API response to the attributes useable by OAuth Connector.'),
     '#tree'        => TRUE,
-  );
-
-  $form['mapping']['method post'] = array(
-    '#type'          => 'checkbox',
-    '#title'         => t('Use POST method'),
-    '#default_value' => !empty($provider->mapping['method post']),
+    'fields'       => array(),
   );
 
   $form['mapping']['format'] = array(
     '#type'  => 'radios',
-    '#title' => t('Response format'),
+    '#title' => t('Format'),
     '#options' => array(
       'json' => 'JSON',
       'php'  => 'PHP',
@@ -269,23 +250,47 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
 
   $mappings = array(
     'uid' => array(
-      '#title'         => t('User ID field'),
-      '#description'   => t('A response field containing a unique ID for the user.'),
+      'title'       => t('User ID'),
+      'description' => t('A resource containing a unique ID for the user.'),
+      'required'    => TRUE,
     ),
     'real name' => array(
-      '#title'         => t('Name field'),
-      '#description'   => t('A response field containing the name of the user.'),
+      'title'       => t('Name'),
+      'description' => t('A resource containing the name of the user.'),
     ),
   );
 
   foreach ($mappings as $key => $mapping) {
-    $form['mapping'][$key] = array(
+    $form['mapping']['fields'][$key] = array(
+      '#type'        => 'fieldset',
+      '#title'       => $mapping['title'],
+      '#description' => $mapping['description'],
+    );
+
+    $form['mapping']['fields'][$key]['resource'] = array(
       '#type'          => 'textfield',
+      '#title'         => t('Resource'),
+      '#description'   => t('The URL of the API resource representing the authorized user.'),
+      '#size'          => 32,
+      '#maxlength'     => 255,
+      '#required'      => !empty($mapping['required']),
+      '#default_value' => empty($provider->mapping['fields'][$key]['resource']) ? '' : $provider->mapping['fields'][$key]['resource'],
+    );
+
+    $form['mapping']['fields'][$key]['method post'] = array(
+      '#type'          => 'checkbox',
+      '#title'         => t('POST request'),
+      '#default_value' => !empty($provider->mapping['fields'][$key]['method post']),
+    );
+
+    $form['mapping']['fields'][$key]['field'] = array(
+      '#type'          => 'textfield',
+      '#title'         => t('Field'),
       '#size'          => 32,
       '#maxlength'     => 32,
-      '#required'      => TRUE,
-      '#default_value' => empty($provider->mapping[$key]) ? '' : $provider->mapping[$key],
-    ) + $mapping;
+      '#required'      => !empty($mapping['required']),
+      '#default_value' => empty($provider->mapping['fields'][$key]['field']) ? '' : $provider->mapping['fields'][$key]['field'],
+    );
   }
 
   $label = empty($provider->pid) ? t('Save and proceed') : t('Save');
@@ -319,8 +324,10 @@ function oauthconnector_edit_form_provider_validate($form, &$form_state) {
   if (!valid_url($values['url'])) {
     form_error($form['url'], t('The url is not valid.'));
   }
-  if (!valid_url($values['user_resource'])) {
-    form_error($form['user_resource'], t('The user resource is not a valid url.'));
+  foreach ($values['mapping']['fields'] as $key => $mapping) {
+    if (!empty($mapping['resource']) && !valid_url($mapping['resource'], TRUE)) {
+      form_error($form['mapping']['fields'][$key]['resource'], t('The resource is not a valid url.'));
+    }
   }
   //TODO: Maybe add some more validation? Eg. check for whitespace in empty mappings?
 }
@@ -336,7 +343,6 @@ function oauthconnector_edit_form_provider_submit($form, &$form_state) {
   $provider->name              = $values['name'];
   $provider->title             = $values['title'];
   $provider->url               = $values['url'];
-  $provider->user_resource     = $values['user_resource'];
   $provider->consumer_key      = $values['consumer_key'];
   $provider->consumer_secret   = $values['consumer_secret'];
   $provider->consumer_advanced = $values['consumer_advanced'];
