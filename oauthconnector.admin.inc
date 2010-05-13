@@ -267,16 +267,26 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
     '#default_value' => empty($provider->mapping['format']) ? 'json' : $provider->mapping['format'],
   );
 
-  //TODO: Change this into a loop of useable values that can be mapped?
-  $form['mapping']['uid'] = array(
-    '#type'          => 'textfield',
-    '#title'         => t('User ID field'),
-    '#description'   => t('The name of a response field containing a unique ID of the user that has been logged in.'),
-    '#size'          => 32,
-    '#maxlength'     => 32,
-    '#required'      => TRUE,
-    '#default_value' => empty($provider->mapping['uid']) ? '' : $provider->mapping['uid'],
+  $mappings = array(
+    'uid' => array(
+      '#title'         => t('User ID field'),
+      '#description'   => t('A response field containing a unique ID for the user.'),
+    ),
+    'real name' => array(
+      '#title'         => t('Name field'),
+      '#description'   => t('A response field containing the name of the user.'),
+    ),
   );
+
+  foreach ($mappings as $key => $mapping) {
+    $form['mapping'][$key] = array(
+      '#type'          => 'textfield',
+      '#size'          => 32,
+      '#maxlength'     => 32,
+      '#required'      => TRUE,
+      '#default_value' => empty($provider->mapping[$key]) ? '' : $provider->mapping[$key],
+    ) + $mapping;
+  }
 
   $label = empty($provider->pid) ? t('Save and proceed') : t('Save');
   $form['submit'] = array(

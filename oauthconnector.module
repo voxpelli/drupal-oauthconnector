@@ -11,6 +11,8 @@
 //TODO: Add support for XML
 //TODO: Add support for fetching names
 //TODO: Add support for good looking names
+//TODO: Save the link between a provider specification and a consumer key in a separate table? Perhaps extend OAuth Commons GUI for that?
+//TODO: Add timeouts for when an API is down?
 
 /* ************************************************************************* *
  * THEME FUNCTIONS
@@ -52,7 +54,8 @@ function oauthconnector_connector() {
     //TODO: Add 'information callback' and 'avatar callback' as well?
     $items['oauthconnector'] = array(
       'button callback' => '_oauthconnector_button',
-      'cache'           => 86400, //24 hours x 3600 seconds per hour
+      'information callback' => '_oauthconnector_info',
+      'cache' => 86400, //24 hours x 3600 seconds per hour
     );
   }
 
@@ -123,17 +126,31 @@ function oauthconnector_menu() {
  * Implementation of hook_oauth_common_authorized().
  */
 function oauthconnector_oauth_common_authorized($consumer_token, $access_token, $request_token) {
+  global $user;
+
   if ($_SESSION['oauthconnector_request_key'] == $request_token->key) {
     // Delete the access token, we only need it once.
-    $access_token->delete();
     unset($_SESSION['oauthconnector_request_key']);
 
     $providers = oauthconnector_provider_load_all();
     foreach ($providers as $provider) {
       if ($provider->consumer_key == $consumer_token->key) {
+        //TODO: Optionally remove the access token - if the provider was only used for log in
+        //      and not for fetching any data then we don't need the access token anymore.
+        //$access_token->delete();
         $external_user = _oauthconnector_fetch_user($provider, $access_token, $consumer_token);
         if (!empty($external_user[$provider->mapping['uid']])) {
-          _connector_log_in('oauthconnector', $provider->name . '__' . $external_user[$provider->mapping['uid']]);
+          if (_connector_log_in('oauthconnector', $provider->name . '__' . $external_user[$provider->mapping['uid']])) {
+            //TODO: Remove old access tokens?
+            //TODO: Don't link token to local UID - link to external UID
+            $access_token->uid = $user->uid;
+            $access_token->write(TRUE);
+            //TODO: Include this in _connector_log_in()?
+            $info = _connector_information_fetch($user->uid, array('real name' => TRUE));
+            if (empty($info['real name'])) {
+              _connector_information_update($user->uid, array('real name' => TRUE));
+            }
+          }
         }
         else {
           //TODO: Add error message
@@ -266,6 +283,37 @@ function oauthconnector_provider_list() {
  * OAUTH INTEGRATION
  * ************************************************************************* */
 
+/**
+ * Information callback
+ */
+function _oauthconnector_info($cid, $types, $uid) {
+  if (!empty($types) && empty($types['real name'])) {
+    return FALSE;
+  }
+
+  $info = FALSE;
+
+  $cid = explode('__', $cid, 2);
+  $provider = oauthconnector_provider_load($cid[0]);
+
+  if (!empty($provider->mapping['real name'])) {
+    $result = db_query("SELECT * FROM {oauth_common_token} WHERE uid = %d AND consumer_key = '%s' AND type = 'access' AND provider_token = 0", array(
+      ':uid' => $uid,
+      ':consumer_key' => $provider->consumer_key,
+    ));
+    $token = DrupalOAuthToken::fromResult($result);
+
+    $external_user = _oauthconnector_fetch_user($provider, $token);
+
+    if ($external_user) {
+      //TODO: Some better error handling?
+      $info = array('real name' => $external_user[$provider->mapping['real name']]);
+    }
+  }
+
+  return $info;
+}
+
 function _oauthconnector_button() {
   return array(
     'title' => theme('oauthconnector_button'),
@@ -307,10 +355,11 @@ function oauthconnector_button_form_submit($form, &$form_state) {
   drupal_goto($auth_url);
 }
 
+//TODO: Add caching of requests?
 function _oauthconnector_fetch_user($provider, $access_token, $consumer_token = NULL) {
   // Load the consumer token if needed
   if (!$consumer_token) {
-    $consumer_token = DrupalOAuthConsumer::load($access_token->consumer_key, FALSE);
+    $consumer_token = DrupalOAuthConsumer::load($provider->consumer_key, FALSE);
   }
 
   $sig_method = DrupalOAuthClient::signatureMethod(substr(strtolower($provider->consumer_advanced['signature method']), 5));
