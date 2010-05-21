@@ -47,15 +47,13 @@ function theme_oauthconnector_button() {
 function oauthconnector_connector() {
   $items = array();
 
-  // Check whether we're all set up - if we are we will return the specification of our connector
-  if (variable_get('oauthconnector_consumer_key', NULL) && variable_get('oauthconnector_consumer_secret', NULL)) {
-    //TODO: Add 'information callback' and 'avatar callback' as well?
-    $items['oauthconnector'] = array(
-      'button callback'      => '_oauthconnector_button',
-      'information callback' => '_oauthconnector_info',
-      'avatar callback'      => '_oauthconnector_avatar',
-    );
-  }
+  //TODO: Iterate through all of the oauth connectors here instead.
+  //      They should appear as invidiual connectors to Connector
+  $items['oauthconnector'] = array(
+    'button callback'      => '_oauthconnector_button',
+    'information callback' => '_oauthconnector_info',
+    'avatar callback'      => '_oauthconnector_avatar',
+  );
 
   return $items;
 }
