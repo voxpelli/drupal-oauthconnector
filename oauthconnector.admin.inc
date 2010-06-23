@@ -203,6 +203,15 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
     '#default_value' => $provider->consumer_advanced['signature method'],
   );
 
+
+  $form['consumer_advanced']['authentication realm'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Authentication realm'),
+    '#size'          => 32,
+    '#maxlength'     => 255,
+    '#default_value' => $provider->consumer_advanced['authentication realm'],
+  );
+
   $form['consumer_advanced']['request token endpoint'] = array(
     '#type'          => 'textfield',
     '#title'         => t('Request token endpoint'),

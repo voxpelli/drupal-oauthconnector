@@ -79,6 +79,7 @@ function oauthconnector_schema() {
         'serialize'      => TRUE,
         'object default' => array(
           'signature method'       => 'HMAC-SHA1',
+          'authentication realm'   => '',
           'request token endpoint' => '/oauth/request_token',
           'authorization endpoint' => '/oauth/authorize',
           'access token endpoint'  => '/oauth/access_token',
