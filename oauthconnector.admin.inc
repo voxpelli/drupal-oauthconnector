@@ -344,6 +344,7 @@ function oauthconnector_edit_form_provider_validate($form, &$form_state) {
   }
   //TODO: Validate that all resources are either completely filled out or completely empty
   //TODO: Maybe add some more validation? Eg. check for whitespace in empty mappings?
+  //TODO: Add triming of eg valid_url() values?
 }
 
 /**
