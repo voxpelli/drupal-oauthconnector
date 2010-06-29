@@ -256,6 +256,7 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
     '#options' => array(
       'json' => 'JSON',
       'php'  => 'PHP',
+      'xml'  => 'XML',
     ),
     '#default_value' => empty($provider->mapping['format']) ? 'json' : $provider->mapping['format'],
   );

@@ -404,12 +404,22 @@ function _oauthconnector_fetch_field($field, $provider, $access_token, $consumer
       $consumer_token = DrupalOAuthConsumer::load($provider->consumer_key, FALSE);
     }
 
-    $sig_method = DrupalOAuthClient::signatureMethod(substr(strtolower($provider->consumer_advanced['signature method']), 5));
-    $format = ($provider->mapping['format'] == 'json' ? HttpClientBaseFormatter::FORMAT_JSON : HttpClientBaseFormatter::FORMAT_PHP);
-
     // Set up the rest client
+    $sig_method = DrupalOAuthClient::signatureMethod(substr(strtolower($provider->consumer_advanced['signature method']), 5));
     $auth   = new HttpClientOAuth($consumer_token, $access_token, $sig_method);
-    $client = new HttpClient($auth, new HttpClientBaseFormatter($format));
+
+    switch ($provider->mapping['format']) {
+      case 'xml':
+        $formatter = new HttpClientXMLFormatter();
+        break;
+      case 'php':
+        $formatter = new HttpClientBaseFormatter(HttpClientBaseFormatter::FORMAT_PHP);
+        break;
+      default:
+        $formatter = new HttpClientBaseFormatter(HttpClientBaseFormatter::FORMAT_JSON);
+        break;
+    }
+    $client = new HttpClient($auth, $formatter);
 
     // Fetch the external user
     $request_method = empty($field['method post']) ? 'get' : 'post';
