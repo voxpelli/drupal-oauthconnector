@@ -8,7 +8,6 @@
 
 //TODO: Make something with the name - do we really want to and can we really import them?
 //TODO: Trim URL of any trailing slashes/spaces
-//TODO: Add support for XML
 //TODO: Save the link between a provider specification and a consumer key in a separate table?
 //      Perhaps extend OAuth Commons GUI for that?
 //TODO: Add timeouts for when an API is down?
@@ -17,6 +16,7 @@
 //      not hide everything behide one connector
 //TODO: Add features support - should be possible to export as part of a feature
 //TODO: Make it possible to specify mapping resources relative to the base url as well
+//TODO: Clean up the exports from default values?
 
 /* ************************************************************************* *
  * THEME FUNCTIONS
