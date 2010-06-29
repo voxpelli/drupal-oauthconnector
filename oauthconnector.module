@@ -439,5 +439,33 @@ function _oauthconnector_fetch_field($field, $provider, $access_token, $consumer
     $info = $cache[$access_token->token_key][$field['method post']][$field['resource']];
   }
 
-  return (empty($info) || empty($info[$field['field']])) ? FALSE : $info[$field['field']];
+  $response = FALSE;
+
+  if (!empty($info)) {
+    if (!empty($field['querypath']) && module_exists('querypath')) {
+      //TODO: Perhaps cache this QueryPath object as well?
+      $response = _oauthconnector_object_to_qp(qp('<?xml version="1.0"?><reponse/>'), $info)->find($field['field'])->eq(0)->text();
+    }
+    elseif (!empty($info[$field['field']])) {
+      $response = $info[$field['field']];
+    }
+  }
+
+  return $response;
+}
+
+function _oauthconnector_object_to_qp($qp, $values) {
+  foreach ($values as $key => $val) {
+    if (is_object($val)) {
+      $val = get_object_vars($val);
+    }
+    $key = check_plain(str_replace(' ', '_', $key));
+    if (is_array($val)) {
+      $qp->append(_oauthconnector_object_to_qp(qp('<?xml version="1.0"?><' . $key . '/>'), $val));
+    }
+    else {
+      $qp->append(qp('<?xml version="1.0"?><' . $key . '>' . check_plain($val) . '</' . $key . '>'));
+    }
+  }
+  return $qp;
 }

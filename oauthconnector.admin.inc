@@ -245,7 +245,10 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
   $form['mapping'] = array(
     '#type'        => 'fieldset',
     '#title'       => t('Mapping'),
-    '#description' => t('Map the attributes from the API response to the attributes useable by OAuth Connector.'),
+    '#description' => t('Map the attributes from the API response to the attributes useable by OAuth Connector.') . "<br/>" .
+      t('If you have the !QueryPath module installed the field selection can be made by a CSS selector.', array(
+        '!QueryPath' => l('QueryPath', 'http://drupal.org/project/querypath')
+      )),
     '#tree'        => TRUE,
     'fields'       => array(),
   );
@@ -307,6 +310,13 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
       '#maxlength'     => 32,
       '#required'      => !empty($mapping['required']),
       '#default_value' => empty($provider->mapping['fields'][$key]['field']) ? '' : $provider->mapping['fields'][$key]['field'],
+    );
+
+    $form['mapping']['fields'][$key]['querypath'] = array(
+      '#type'          => 'checkbox',
+      '#title'         => t('Field is a CSS selector'),
+      '#default_value' => !empty($provider->mapping['fields'][$key]['querypath']),
+      '#access'        => module_exists('querypath'),
     );
   }
 
