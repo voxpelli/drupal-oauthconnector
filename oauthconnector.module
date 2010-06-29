@@ -17,6 +17,7 @@
 //TODO: Add features support - should be possible to export as part of a feature
 //TODO: Make it possible to specify mapping resources relative to the base url as well
 //TODO: Clean up the exports from default values?
+//TODO: Add warning if a connector that needs querypath is activated without querypath being that
 
 /* ************************************************************************* *
  * THEME FUNCTIONS
