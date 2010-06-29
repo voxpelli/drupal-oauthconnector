@@ -20,31 +20,6 @@
 //TODO: Add warning if a connector that needs querypath is activated without querypath being that
 
 /* ************************************************************************* *
- * THEME FUNCTIONS
- * ************************************************************************* */
-
-/**
- * Implementation of hook_theme().
- */
-function oauthconnector_theme() {
-  $theme = array(
-    'oauthconnector_button' => array(
-      'arguments' => array(),
-    ),
-  );
-
-  return $theme;
-}
-
-/**
- * Theme function for the button
- */
-function theme_oauthconnector_button() {
-  return drupal_get_form('oauthconnector_button_form');
-}
-
-
-/* ************************************************************************* *
  * DRUPAL HOOKS
  * ************************************************************************* */
 
@@ -56,11 +31,20 @@ function oauthconnector_connector() {
 
   //TODO: Iterate through all of the oauth connectors here instead.
   //      They should appear as invidiual connectors to Connector
-  $items['oauthconnector'] = array(
+  $base = array(
     'button callback'      => '_oauthconnector_button',
     'information callback' => '_oauthconnector_info',
     'avatar callback'      => '_oauthconnector_avatar',
   );
+
+  $providers = oauthconnector_provider_load_all();
+  foreach ($providers as $provider) {
+    if ($provider->consumer_key) {
+      $items['oauthconnector_' . $provider->name] = array(
+        'oauthconnector provider' => $provider,
+      ) + $base;
+    }
+  }
 
   return $items;
 }
@@ -143,7 +127,7 @@ function oauthconnector_oauth_common_authorized($consumer_token, $access_token, 
         //$access_token->delete();
         $external_uid = _oauthconnector_fetch_field('uid', $provider, $access_token, $consumer_token);
         if (!empty($external_uid)) {
-          if (_connector_log_in('oauthconnector', $provider->name . '__' . $external_uid)) {
+          if (_connector_log_in('oauthconnector_' . $provider->name, $external_uid)) {
             //TODO: Remove old access tokens?
             //TODO: Don't link token to local UID - link to external UID
             $access_token->uid = $user->uid;
@@ -164,6 +148,19 @@ function oauthconnector_oauth_common_authorized($consumer_token, $access_token, 
   }
 }
 
+/**
+ * Implementation of hook_forms().
+ */
+function oauthconnector_forms($form_id, $args) {
+  $forms = array();
+  $id = explode('_', $form_id, 3);
+  if ($id[0] == 'oauthconnector' && $id[2] == 'button_form') {
+    return array(
+      $form_id => array('callback' => 'oauthconnector_button_form'),
+    );
+  }
+  return $forms;
+}
 
 /* ************************************************************************* *
  * CTOOLS INTEGRATION
@@ -290,15 +287,14 @@ function oauthconnector_provider_list() {
 /**
  * Information callback
  */
-function _oauthconnector_info($cid, $types, $uid) {
+function _oauthconnector_info($connector, $cid, $types, $uid) {
   if (!empty($types) && empty($types['real name'])) {
     return FALSE;
   }
 
   $info = FALSE;
 
-  $cid = explode('__', $cid, 2);
-  $provider = oauthconnector_provider_load($cid[0]);
+  $provider = $connector['oauthconnector provider'];
 
   if (!empty($provider->mapping['fields']['real name']['resource'])) {
     $result = db_query("SELECT * FROM {oauth_common_token} WHERE uid = %d AND consumer_key = '%s' AND type = 'access' AND provider_token = 0", array(
@@ -320,11 +316,10 @@ function _oauthconnector_info($cid, $types, $uid) {
 /**
  * Information callback
  */
-function _oauthconnector_avatar($cid, $uid) {
+function _oauthconnector_avatar($connector, $cid, $uid) {
   $info = FALSE;
 
-  $cid = explode('__', $cid, 2);
-  $provider = oauthconnector_provider_load($cid[0]);
+  $provider = $connector['oauthconnector provider'];
 
   if (!empty($provider->mapping['fields']['avatar']['resource'])) {
     $result = db_query("SELECT * FROM {oauth_common_token} WHERE uid = %d AND consumer_key = '%s' AND type = 'access' AND provider_token = 0", array(
@@ -343,29 +338,25 @@ function _oauthconnector_avatar($cid, $uid) {
   return $info;
 }
 
-function _oauthconnector_button() {
+function _oauthconnector_button($connector) {
   return array(
-    'title' => theme('oauthconnector_button'),
+    'title' => drupal_get_form('oauthconnector_' . $connector['oauthconnector provider']->name . '_button_form', $connector['oauthconnector provider']),
     'html'  => TRUE,
   );
 }
 
-function oauthconnector_button_form(&$form_state) {
-  $form = array();
-  $providers = oauthconnector_provider_load_all();
-  foreach ($providers as $provider) {
-    if ($provider->consumer_key) {
-      $form['login_' . $provider->name] = array(
-        '#type'  => 'submit',
-        '#value' => t('Connect with !title', array('!title' => $provider->title)),
-        'provider' => array(
-          '#type'  => 'value',
-          '#value' => $provider,
-        ),
-      );
-    }
-  }
-  return $form;
+function oauthconnector_button_form(&$form_state, $provider) {
+  return array(
+    'login_' . $provider->name => array(
+      '#type'   => 'submit',
+      '#value'  => t('Connect with !title', array('!title' => $provider->title)),
+      '#submit' => array('oauthconnector_button_form_submit'),
+      'provider' => array(
+        '#type'  => 'value',
+        '#value' => $provider,
+      ),
+    ),
+  );
 }
 
 function oauthconnector_button_form_submit($form, &$form_state) {
