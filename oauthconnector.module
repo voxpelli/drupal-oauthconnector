@@ -339,10 +339,7 @@ function _oauthconnector_avatar($connector, $cid, $uid) {
 }
 
 function _oauthconnector_button($connector) {
-  return array(
-    'title' => drupal_get_form('oauthconnector_' . $connector['oauthconnector provider']->name . '_button_form', $connector['oauthconnector provider']),
-    'html'  => TRUE,
-  );
+  return drupal_get_form('oauthconnector_' . $connector['oauthconnector provider']->name . '_button_form', $connector['oauthconnector provider']);
 }
 
 function oauthconnector_button_form(&$form_state, $provider) {
