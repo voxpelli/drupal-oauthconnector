@@ -16,6 +16,7 @@
 //TODO: Refactor - hook_connector() should return multiple connectors -
 //      not hide everything behide one connector
 //TODO: Add features support - should be possible to export as part of a feature
+//TODO: Make it possible to specify mapping resources relative to the base url as well
 
 /* ************************************************************************* *
  * THEME FUNCTIONS
