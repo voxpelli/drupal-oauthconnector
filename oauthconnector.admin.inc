@@ -154,8 +154,8 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
 
   $form['url'] = array(
     '#type'        => 'textfield',
-    '#title'       => t('URL'),
-    '#description' => t('A URL to the OAuth provider, typically to the front page.'),
+    '#title'       => t('Base URL'),
+    '#description' => t('A URL to the OAuth provider.'),
     '#size'        => 32,
     '#maxlength'   => 255,
     '#required'    => TRUE,
@@ -215,6 +215,7 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
   $form['consumer_advanced']['request token endpoint'] = array(
     '#type'          => 'textfield',
     '#title'         => t('Request token endpoint'),
+    '#description'   => t('Absolute path or path relative to base URL.'),
     '#size'          => 32,
     '#maxlength'     => 255,
     '#required'      => TRUE,
@@ -224,6 +225,7 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
   $form['consumer_advanced']['authorization endpoint'] = array(
     '#type'          => 'textfield',
     '#title'         => t('Authorization endpoint'),
+    '#description'   => t('Absolute path or path relative to base URL.'),
     '#size'          => 32,
     '#maxlength'     => 255,
     '#required'      => TRUE,
@@ -233,6 +235,7 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
   $form['consumer_advanced']['access token endpoint'] = array(
     '#type'          => 'textfield',
     '#title'         => t('Access token endpoint'),
+    '#description'   => t('Absolute path or path relative to base URL.'),
     '#size'          => 32,
     '#maxlength'     => 255,
     '#required'      => TRUE,
