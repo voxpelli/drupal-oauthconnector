@@ -41,6 +41,7 @@ function oauthconnector_connector() {
   foreach ($providers as $provider) {
     if ($provider->consumer_key) {
       $items['oauthconnector_' . $provider->name] = array(
+        'title' => $provider->title,
         'oauthconnector provider' => $provider,
       ) + $base;
     }
@@ -146,20 +147,6 @@ function oauthconnector_oauth_common_authorized($consumer_token, $access_token, 
       }
     }
   }
-}
-
-/**
- * Implementation of hook_forms().
- */
-function oauthconnector_forms($form_id, $args) {
-  $forms = array();
-  $id = explode('_', $form_id, 3);
-  if ($id[0] == 'oauthconnector' && $id[2] == 'button_form') {
-    return array(
-      $form_id => array('callback' => 'oauthconnector_button_form'),
-    );
-  }
-  return $forms;
 }
 
 /* ************************************************************************* *
@@ -338,28 +325,10 @@ function _oauthconnector_avatar($connector, $cid, $uid) {
   return $info;
 }
 
-function _oauthconnector_button($connector) {
-  return drupal_get_form('oauthconnector_' . $connector['oauthconnector provider']->name . '_button_form', $connector['oauthconnector provider']);
-}
-
-function oauthconnector_button_form(&$form_state, $provider) {
-  return array(
-    'login_' . $provider->name => array(
-      '#type'   => 'submit',
-      '#value'  => t('Connect with !title', array('!title' => $provider->title)),
-      '#submit' => array('oauthconnector_button_form_submit'),
-      'provider' => array(
-        '#type'  => 'value',
-        '#value' => $provider,
-      ),
-    ),
-  );
-}
-
-function oauthconnector_button_form_submit($form, &$form_state) {
+function _oauthconnector_button($form, &$form_state) {
   //TODO: Move some of the contens of this function to oauth_common_get_request_token()?
 
-  $provider = $form_state['clicked_button']['provider']['#value'];
+  $provider = $form_state['clicked_button']['connector']['#value']['oauthconnector provider'];
   $callback_url = url('oauth/authorized', array('absolute' => TRUE));
 
   $consumer_token = DrupalOAuthConsumer::load($provider->consumer_key, FALSE);
