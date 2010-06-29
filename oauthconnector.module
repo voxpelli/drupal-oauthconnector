@@ -406,7 +406,8 @@ function _oauthconnector_fetch_field($field, $provider, $access_token, $consumer
 
     // Set up the rest client
     $sig_method = DrupalOAuthClient::signatureMethod(substr(strtolower($provider->consumer_advanced['signature method']), 5));
-    $auth   = new HttpClientOAuth($consumer_token, $access_token, $sig_method);
+    $realm = empty($provider->consumer_advanced['authentication realm']) ? NULL : $provider->consumer_advanced['authentication realm'];
+    $auth = new HttpClientOAuth($consumer_token, $access_token, $sig_method, TRUE, TRUE, $realm);
 
     switch ($provider->mapping['format']) {
       case 'xml':
@@ -424,7 +425,7 @@ function _oauthconnector_fetch_field($field, $provider, $access_token, $consumer
     // Fetch the external user
     $request_method = empty($field['method post']) ? 'get' : 'post';
     try {
-      $info = (array)$client->{$request_method}($field['resource'], array());
+      $info = (array)$client->{$request_method}($field['resource']);
       $cache[$access_token->token_key][$field['method post']][$field['resource']] = $info;
     } catch (Exception $e) {
       //TODO: Change to watchdog?
