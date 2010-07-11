@@ -335,11 +335,16 @@ function _oauthconnector_button($form, &$form_state) {
   $sig_method = DrupalOAuthClient::signatureMethod(substr(strtolower($provider->consumer_advanced['signature method']), 5));
 
   $client = new DrupalOAuthClient($consumer_token, NULL, $sig_method); //TODO: Customize signaturemethod here
-  $request_token = $client->getRequestToken($provider->consumer_advanced['request token endpoint'], array(), $provider->consumer_advanced['authentication realm'], FALSE, $callback_url); //TODO: Add request_endpoint here?
+  $request_token = $client->getRequestToken($provider->consumer_advanced['request token endpoint'], array(
+    'realm' => $provider->consumer_advanced['authentication realm'],
+    'callback' => $callback_url,
+  ));
   $request_token->write();
 
   $_SESSION['oauthconnector_request_key'] = $request_token->key;
-  $auth_url = $client->getAuthorizationUrl($callback_url, $provider->consumer_advanced['authorization endpoint']); //TODO: Add some endpoints here?
+  $auth_url = $client->getAuthorizationUrl($provider->consumer_advanced['authorization endpoint'], array(
+    'callback' => $callback_url,
+  ));
 
   drupal_goto($auth_url);
 }
