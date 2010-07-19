@@ -18,6 +18,7 @@
 //TODO: Make it possible to specify mapping resources relative to the base url as well
 //TODO: Clean up the exports from default values?
 //TODO: Add warning if a connector that needs querypath is activated without querypath being that
+//TODO: Remove a users old token if he has signed in with a new one? That would be a sign that the old one has been revoked
 
 /* ************************************************************************* *
  * DRUPAL HOOKS
@@ -29,12 +30,8 @@
 function oauthconnector_connector() {
   $items = array();
 
-  //TODO: Iterate through all of the oauth connectors here instead.
-  //      They should appear as invidiual connectors to Connector
   $base = array(
-    'button callback'      => '_oauthconnector_button',
-    'information callback' => '_oauthconnector_info',
-    'avatar callback'      => '_oauthconnector_avatar',
+    'button callback' => '_oauthconnector_button',
   );
 
   $providers = oauthconnector_provider_load_all();
@@ -44,6 +41,12 @@ function oauthconnector_connector() {
         'title' => $provider->title,
         'oauthconnector provider' => $provider,
       ) + $base;
+      if (isset($provider->mapping['fields']['real name'])) {
+        $items['oauthconnector_' . $provider->name]['information callback'] = '_oauthconnector_info';
+      }
+      if (isset($provider->mapping['fields']['avatar'])) {
+        $items['oauthconnector_' . $provider->name]['avatar callback'] = '_oauthconnector_avatar';
+      }
     }
   }
 
@@ -279,15 +282,15 @@ function _oauthconnector_info($connector, $cid, $types, $uid) {
     return FALSE;
   }
 
-  $info = FALSE;
+  $info = array();
 
   $provider = $connector['oauthconnector provider'];
 
   if (!empty($provider->mapping['fields']['real name']['resource'])) {
-    $result = db_query("SELECT * FROM {oauth_common_token} WHERE uid = %d AND consumer_key = '%s' AND type = 'access' AND provider_token = 0", array(
+    $result = db_query_range("SELECT * FROM {oauth_common_token} WHERE uid = %d AND consumer_key = '%s' AND type = 'access' AND provider_token = 0 ORDER BY changed DESC", array(
       ':uid' => $uid,
       ':consumer_key' => $provider->consumer_key,
-    ));
+    ), 0, 1);
     $token = DrupalOAuthToken::fromResult($result);
 
     $real_name = _oauthconnector_fetch_field('real name', $provider, $token);
@@ -392,10 +395,29 @@ function _oauthconnector_fetch_field($field, $provider, $access_token, $consumer
       $info = (array)$client->{$request_method}($field['resource']);
       $cache[$access_token->token_key][$field['method post']][$field['resource']] = $info;
     } catch (Exception $e) {
-      //TODO: Change to watchdog?
-      drupal_set_message(t('Failed to fetch user info for login: @message', array(
-        '@message' => $e->getMessage(),
-      )), 'error');
+      if (is_a($e, 'HttpClientException')) {
+        if ($e->getCode() == 401) {
+          //TODO: Save the failure in some way so that we can stop trying to use a revoked token?¨
+          watchdog('oauthconnector', "User !uid not authenticated for %resource: @message", array(
+            '!uid' => $access_token->uid,
+            '%resource' => $field['resource'],
+            '@message' => $e->getMessage(),
+          ), WATCHDOG_WARNING);
+        }
+        elseif ($e->getCode() == 400) {
+          //TODO: Add link to the connector
+          watchdog('oauthconnector', "Bad request of %resource: @message", array(
+            '%resource' => $field['resource'],
+            '@message' => $e->getMessage(),
+          ), WATCHDOG_ERROR);
+        }
+      }
+      else {
+        watchdog('oauthconnector', 'Failed to fetch of %resource: @message', array(
+          '%resource' => $field['resource'],
+          '@message' => $e->getMessage(),
+        ), WATCHDOG_WARNING);
+      }
     }
   }
   else {
