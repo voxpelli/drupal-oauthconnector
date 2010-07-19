@@ -6,19 +6,17 @@
  * OAuth Connector module
  */
 
-//TODO: Make something with the name - do we really want to and can we really import them?
 //TODO: Trim URL of any trailing slashes/spaces
 //TODO: Save the link between a provider specification and a consumer key in a separate table?
 //      Perhaps extend OAuth Commons GUI for that?
 //TODO: Add timeouts for when an API is down?
 //TODO: Add rules support - actions etc.
-//TODO: Refactor - hook_connector() should return multiple connectors -
-//      not hide everything behide one connector
 //TODO: Add features support - should be possible to export as part of a feature
 //TODO: Make it possible to specify mapping resources relative to the base url as well
 //TODO: Clean up the exports from default values?
 //TODO: Add warning if a connector that needs querypath is activated without querypath being that
 //TODO: Remove a users old token if he has signed in with a new one? That would be a sign that the old one has been revoked
+//TODO: Remove warning about email verification?
 
 /* ************************************************************************* *
  * DRUPAL HOOKS
@@ -120,7 +118,6 @@ function oauthconnector_oauth_common_authorized($consumer_token, $access_token, 
   global $user;
 
   if ($_SESSION['oauthconnector_request_key'] == $request_token->key) {
-    // Delete the access token, we only need it once.
     unset($_SESSION['oauthconnector_request_key']);
 
     $providers = oauthconnector_provider_load_all();
@@ -128,6 +125,7 @@ function oauthconnector_oauth_common_authorized($consumer_token, $access_token, 
       if ($provider->consumer_key == $consumer_token->key) {
         //TODO: Optionally remove the access token - if the provider was only used for log in
         //      and not for fetching any data then we don't need the access token anymore.
+        //TODO: Check for whether this connector will be fetching name and avatar - if not then remove the access token?
         //$access_token->delete();
         $external_uid = _oauthconnector_fetch_field('uid', $provider, $access_token, $consumer_token);
         if (!empty($external_uid)) {
@@ -137,6 +135,7 @@ function oauthconnector_oauth_common_authorized($consumer_token, $access_token, 
             $access_token->uid = $user->uid;
             $access_token->write(TRUE);
             //TODO: Include this in _connector_log_in()?
+            //TODO: (Why do we do this at all? Isn't this taken care of by realname itself? Is it to ensure that we will be given access?)
             $info = _connector_information_fetch($user->uid, array('real name' => TRUE));
             if (empty($info['real name'])) {
               _connector_information_update($user->uid, array('real name' => TRUE));
@@ -178,7 +177,6 @@ function oauthconnector_provider_new() {
 function oauthconnector_provider_load($name) {
   ctools_include('export');
   $result = ctools_export_load_object('oauthconnector_provider', 'names', array($name));
-  //TODO: Load some stuff from OAuth Common here as well? Perhaps the entire consumer?
   if (isset($result[$name])) {
     return $result[$name];
   }
@@ -249,7 +247,6 @@ function oauthconnector_provider_delete($provider) {
  * @return string
  */
 function oauthconnector_provider_export($provider, $indent = '') {
-  //TODO: Try to make the exported provider disabled as default?
   ctools_include('export');
   $output = ctools_export_object('oauthconnector_provider', $provider, $indent);
   return $output;
@@ -295,7 +292,6 @@ function _oauthconnector_info($connector, $cid, $types, $uid) {
 
     $real_name = _oauthconnector_fetch_field('real name', $provider, $token);
     if ($real_name) {
-      //TODO: Some better error handling?
       $info = array('real name' => $real_name);
     }
   }
@@ -319,7 +315,6 @@ function _oauthconnector_avatar($connector, $cid, $uid) {
     $token = DrupalOAuthToken::fromResult($result);
 
     $info = _oauthconnector_fetch_field('avatar', $provider, $token);
-    //TODO: Some better error handling?
     if (empty($info)) {
       $info = FALSE;
     }
@@ -337,7 +332,7 @@ function _oauthconnector_button($form, &$form_state) {
   $consumer_token = DrupalOAuthConsumer::load($provider->consumer_key, FALSE);
   $sig_method = DrupalOAuthClient::signatureMethod(substr(strtolower($provider->consumer_advanced['signature method']), 5));
 
-  $client = new DrupalOAuthClient($consumer_token, NULL, $sig_method); //TODO: Customize signaturemethod here
+  $client = new DrupalOAuthClient($consumer_token, NULL, $sig_method);
   $request_token = $client->getRequestToken($provider->consumer_advanced['request token endpoint'], array(
     'realm' => $provider->consumer_advanced['authentication realm'],
     'callback' => $callback_url,
@@ -352,7 +347,6 @@ function _oauthconnector_button($form, &$form_state) {
   drupal_goto($auth_url);
 }
 
-//TODO: Add caching of requests?
 function _oauthconnector_fetch_field($field, $provider, $access_token, $consumer_token = NULL) {
   static $cache = array();
 
@@ -405,7 +399,6 @@ function _oauthconnector_fetch_field($field, $provider, $access_token, $consumer
           ), WATCHDOG_WARNING);
         }
         elseif ($e->getCode() == 400) {
-          //TODO: Add link to the connector
           watchdog('oauthconnector', "Bad request of %resource: @message", array(
             '%resource' => $field['resource'],
             '@message' => $e->getMessage(),
