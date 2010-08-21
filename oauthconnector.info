@@ -1,0 +1,9 @@
+; $Id$
+name = OAuth Connector
+description = OAuth support for the Connector module
+core = 6.x
+version = "6.x-0.1"
+package = "Connector"
+dependencies[] = connector
+dependencies[] = oauth_common
+dependencies[] = http_client_oauth
