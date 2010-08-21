@@ -7,3 +7,4 @@ package = "Connector"
 dependencies[] = connector
 dependencies[] = oauth_common
 dependencies[] = http_client_oauth
+dependencies[] = ctools
