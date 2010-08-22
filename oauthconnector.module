@@ -10,13 +10,12 @@
 //TODO: Save the link between a provider specification and a consumer key in a separate table?
 //      Perhaps extend OAuth Commons GUI for that?
 //TODO: Add timeouts for when an API is down?
-//TODO: Add rules support - actions etc.
-//TODO: Add features support - should be possible to export as part of a feature
 //TODO: Make it possible to specify mapping resources relative to the base url as well
 //TODO: Clean up the exports from default values?
 //TODO: Add warning if a connector that needs querypath is activated without querypath being that
 //TODO: Remove a users old token if he has signed in with a new one? That would be a sign that the old one has been revoked
 //TODO: Remove warning about email verification?
+//TODO: Better error handling - don't let exceptions through
 
 /* ************************************************************************* *
  * DRUPAL HOOKS
@@ -291,6 +290,7 @@ function _oauthconnector_info($connector, $cid, $types, $uid) {
     $token = DrupalOAuthToken::fromResult($result);
 
     $real_name = _oauthconnector_fetch_field('real name', $provider, $token);
+    //TODO: If $real_name is false - shouldn't we return that to trigger ther backing of mechanism?
     if ($real_name) {
       $info = array('real name' => $real_name);
     }
@@ -391,7 +391,7 @@ function _oauthconnector_fetch_field($field, $provider, $access_token, $consumer
     } catch (Exception $e) {
       if (is_a($e, 'HttpClientException')) {
         if ($e->getCode() == 401) {
-          //TODO: Save the failure in some way so that we can stop trying to use a revoked token?¨
+          //TODO: Save the failure in some way so that we can stop trying to use a revoked token?
           watchdog('oauthconnector', "User !uid not authenticated for %resource: @message", array(
             '!uid' => $access_token->uid,
             '%resource' => $field['resource'],
