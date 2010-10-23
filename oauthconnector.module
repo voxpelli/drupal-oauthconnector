@@ -265,6 +265,22 @@ function oauthconnector_provider_list() {
   return $return;
 }
 
+/**
+ * Fins the token for a connection.
+ *
+ * @return object
+ */
+function oauthconnector_get_connection_token($connector, $cid, $uid) {
+  $provider = $connector['oauthconnector provider'];
+
+  $result = db_query_range("SELECT * FROM {oauth_common_token} WHERE uid = %d AND consumer_key = '%s' AND type = 'access' AND provider_token = 0 ORDER BY changed DESC", array(
+    ':uid' => $uid,
+    ':consumer_key' => $provider->consumer_key,
+  ), 0, 1);
+  $token = DrupalOAuthToken::fromResult($result);
+
+  return $token;
+}
 
 /* ************************************************************************* *
  * OAUTH INTEGRATION
@@ -283,12 +299,7 @@ function _oauthconnector_info($connector, $cid, $types, $uid) {
   $provider = $connector['oauthconnector provider'];
 
   if (!empty($provider->mapping['fields']['real name']['resource'])) {
-    $result = db_query_range("SELECT * FROM {oauth_common_token} WHERE uid = %d AND consumer_key = '%s' AND type = 'access' AND provider_token = 0 ORDER BY changed DESC", array(
-      ':uid' => $uid,
-      ':consumer_key' => $provider->consumer_key,
-    ), 0, 1);
-    $token = DrupalOAuthToken::fromResult($result);
-
+    $token     = oauthconnector_get_connection_token($connector, $cid, $uid);
     $real_name = _oauthconnector_fetch_field('real name', $provider, $token);
     //TODO: If $real_name is false - shouldn't we return that to trigger ther backing of mechanism?
     if ($real_name) {
@@ -308,13 +319,8 @@ function _oauthconnector_avatar($connector, $cid, $uid) {
   $provider = $connector['oauthconnector provider'];
 
   if (!empty($provider->mapping['fields']['avatar']['resource'])) {
-    $result = db_query("SELECT * FROM {oauth_common_token} WHERE uid = %d AND consumer_key = '%s' AND type = 'access' AND provider_token = 0", array(
-      ':uid' => $uid,
-      ':consumer_key' => $provider->consumer_key,
-    ));
-    $token = DrupalOAuthToken::fromResult($result);
-
-    $info = _oauthconnector_fetch_field('avatar', $provider, $token);
+    $token = oauthconnector_get_connection_token($connector, $cid, $uid);
+    $info  = _oauthconnector_fetch_field('avatar', $provider, $token);
     if (empty($info)) {
       $info = FALSE;
     }
