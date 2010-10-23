@@ -68,7 +68,7 @@ function oauthconnector_list_provider($js = NULL) {
       'data' => array(
         'title'         => check_plain($provider->title),
         'url'           => l($provider->url, $provider->url),
-        'consumer_key'  => check_plain($provider->consumer_key),
+        'consumer_key'  => empty($provider->csid) ? '' : t('Yes'),
         'storage'       => $provider->type,
         'operations'    => theme('links', $operations),
       ),
@@ -108,8 +108,8 @@ function oauthconnector_edit_provider($provider) {
   if (!is_object($provider)) {
     $provider = oauthconnector_provider_load($provider);
   }
-  if (!empty($provider->consumer_key) && empty($provider->consumer_secret)) {
-    $provider->consumer_secret = DrupalOAuthConsumer::load($provider->consumer_key, FALSE)->secret;
+  if (!empty($provider->csid)) {
+    $provider->consumer = DrupalOAuthConsumer::loadById($provider->csid, FALSE);
   }
   if ($provider && !empty($provider->title)) {
     drupal_set_title(check_plain($provider->title));
@@ -168,7 +168,7 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
     '#description'   => t('Your consumer key provided by the OAuth provider.'),
     '#size'          => 32,
     '#maxlength'     => 255,
-    '#default_value' => $provider->consumer_key,
+    '#default_value' => $provider->consumer->key,
   );
 
   $form['consumer_secret'] = array(
@@ -177,7 +177,7 @@ function oauthconnector_edit_form_provider(&$form_state, $provider) {
     '#description'   => t('Your consumer secret provided by the OAuth provider.'),
     '#size'          => 32,
     '#maxlength'     => 255,
-    '#default_value' => $provider->consumer_secret,
+    '#default_value' => $provider->consumer->secret,
   );
 
   $form['consumer_advanced'] = array(
@@ -372,9 +372,12 @@ function oauthconnector_edit_form_provider_submit($form, &$form_state) {
   $provider->name              = $values['name'];
   $provider->title             = $values['title'];
   $provider->url               = $values['url'];
+
+  //TODO: Need to save differently?
   $provider->consumer_key      = $values['consumer_key'];
   $provider->consumer_secret   = $values['consumer_secret'];
   $provider->consumer_advanced = $values['consumer_advanced'];
+
   $provider->mapping           = array_filter($values['mapping']);
 
   if (empty($provider->pid)) {
