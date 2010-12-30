@@ -50,6 +50,12 @@ function oauthconnector_connector() {
   return $items;
 }
 
+/**
+ * Implementation of hook_perm().
+ */
+function oauthconnector_perm() {
+  return array('administer oauth connector');
+}
 
 /**
  * Implementation of hook_menu().
