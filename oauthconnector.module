@@ -298,7 +298,7 @@ function oauthconnector_provider_list() {
 }
 
 /**
- * Fins the token for a connection.
+ * Finds the token for a connection.
  *
  * @return object
  */
