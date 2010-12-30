@@ -145,6 +145,11 @@ function oauthconnector_oauth_common_authorized($consumer_token, $access_token, 
             if (empty($info['real name'])) {
               _connector_information_update($user->uid, array('real name' => TRUE));
             }
+            if (!empty($_SESSION['oauthconnector_destination'])) {
+              $_REQUEST['destination'] = $_SESSION['oauthconnector_destination'];
+              unset($_SESSION['oauthconnector_destination']);
+              drupal_goto();
+            }
           }
         }
         else {
@@ -355,6 +360,24 @@ function _oauthconnector_button($form, &$form_state) {
   $auth_url = $client->getAuthorizationUrl($provider->consumer_advanced['authorization endpoint'], array(
     'callback' => $callback_url,
   ));
+
+  if (isset($_REQUEST['destination'])) {
+    $destination = $_REQUEST['destination'];
+    unset($_REQUEST['destination']);
+  }
+  elseif (isset($_REQUEST['edit']['destination'])) {
+    $destination = $_REQUEST['edit']['destination'];
+    unset($_REQUEST['edit']['destination']);
+  }
+  else {
+   $destination = isset($_GET['q']) ? $_GET['q'] : '';
+    $query = drupal_query_string_encode($_GET, array('q'));
+    if ($query != '') {
+      $destination .= '?'. $query;
+    }
+  }
+
+  $_SESSION['oauthconnector_destination'] = $destination;
 
   drupal_goto($auth_url);
 }
