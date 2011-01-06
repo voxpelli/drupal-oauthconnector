@@ -145,6 +145,8 @@ function oauthconnector_update_6100() {
     db_drop_field($ret, 'oauthconnector_provider', 'consumer_key');
 
     db_create_table($ret, 'oauthconnector_connections', _oauthconnector_connections_schema_1());
+
+    //TODO: Add connections for all old connections
   }
 
   return $ret;

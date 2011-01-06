@@ -17,6 +17,8 @@
 //TODO: Remove warning about email verification?
 //TODO: Better error handling - don't let exceptions through
 //TODO: Act on the deletion of a user?
+//TODO: Add more hooks on eg. addition of a connection? Do it here or in Connector? In Connector probably…
+//TODO: watchdog() is awesome - use it!
 
 /* ************************************************************************* *
  * DRUPAL HOOKS
