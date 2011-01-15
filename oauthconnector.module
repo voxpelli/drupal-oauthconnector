@@ -132,9 +132,11 @@ function oauthconnector_oauth_common_authorized($consumer, $access_token, $reque
     $providers = oauthconnector_provider_load_all();
     foreach ($providers as $provider) {
       if ($provider->csid == $consumer->csid) {
+        //TODO: Only loop through active providers?
         //TODO: Optionally remove the access token - if the provider was only used for log in
         //      and not for fetching any data then we don't need the access token anymore.
         //TODO: Check for whether this connector will be fetching name and avatar - if not then remove the access token?
+        //      Will need to check for whether someone else would like to use the access token as well.
         //$access_token->delete();
         $external_uid = _oauthconnector_fetch_field('uid', $provider, $access_token, $consumer);
         if (!empty($external_uid)) {
@@ -375,6 +377,7 @@ function _oauthconnector_button($form, &$form_state, $login = TRUE) {
   $sig_method = DrupalOAuthClient::signatureMethod(substr(strtolower($provider->consumer_advanced['signature method']), 5));
 
   $client = new DrupalOAuthClient($consumer, NULL, $sig_method);
+  //TODO: Deal with errors! Add a try-catch
   $request_token = $client->getRequestToken($provider->consumer_advanced['request token endpoint'], array(
     'realm' => $provider->consumer_advanced['authentication realm'],
     'callback' => $callback_url,
