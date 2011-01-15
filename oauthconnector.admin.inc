@@ -13,11 +13,11 @@
  */
 function oauthconnector_list_provider($js = NULL) {
   $header = array(
-    array('data' => t('Title'),         'class' => 'oauthconnector-provider-title'),
-    array('data' => t('URL'),           'class' => 'oauthconnector-provider-url'),
-    array('data' => t('Consumer Key'),  'class' => 'oauthconnector-provider-consumer-key'),
-    array('data' => t('Storage'),       'class' => 'oauthconnector-provider-storage'),
-    array('data' => t('Operations'),    'class' => 'oauthconnector-provider-operations'),
+    array('data' => t('Title'),        'class' => 'oauthconnector-provider-title'),
+    array('data' => t('URL'),          'class' => 'oauthconnector-provider-url'),
+    array('data' => t('Callback URL'), 'class' => 'oauthconnector-provider-callback-url'),
+    array('data' => t('Storage'),      'class' => 'oauthconnector-provider-storage'),
+    array('data' => t('Operations'),   'class' => 'oauthconnector-provider-operations'),
   );
 
   $providers = oauthconnector_provider_load_all();
@@ -68,16 +68,16 @@ function oauthconnector_list_provider($js = NULL) {
       'data' => array(
         'title'         => check_plain($provider->title),
         'url'           => l($provider->url, $provider->url),
-        'consumer_key'  => empty($provider->csid) ? '' : t('Yes'),
+        'callback_url'  => empty($provider->csid) ? '' : l('oauth/authorized/' . $provider->csid, 'oauth/authorized/' . $provider->csid),
         'storage'       => $provider->type,
         'operations'    => theme('links', $operations),
       ),
       'class' => (!empty($provider->disabled) ? ' oauthconnector-provider-disabled' : ''),
     );
 
-    if (empty($rows[$provider->name]['data']['consumer_key'])) {
-      $rows[$provider->name]['data']['consumer_key'] = array(
-        'data'  => t('Missing') . (empty($provider->disabled) ? ' (' . l(t('Add'), 'admin/build/oauthconnector/' . $provider->name . '/edit') . ')' : ''),
+    if (empty($rows[$provider->name]['data']['callback_url'])) {
+      $rows[$provider->name]['data']['callback_url'] = array(
+        'data'  => t('Missing consumer key') . (empty($provider->disabled) ? ' (' . l(t('Add'), 'admin/build/oauthconnector/' . $provider->name . '/edit') . ')' : ''),
         'class' => 'oauthconnector-provider-warning',
       );
     }
