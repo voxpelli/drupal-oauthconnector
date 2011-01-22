@@ -150,13 +150,18 @@ function oauthconnector_oauth_common_authorized($consumer, $access_token, $reque
             $connect = _connector_log_in('oauthconnector_' . $provider->name, $external_uid);
           }
           if ($connect) {
-            //TODO: Remove old access tokens?
             $access_token->uid = $user->uid;
             $access_token->write(TRUE);
 
-            $connection = array('tid' => $access_token->tid, 'cid' => $external_uid);
-            //TODO: Clean this up on token removal and connection removal
-            drupal_write_record('oauthconnector_connections', $connection);
+            //TODO: Clean up connection on token removal and connection removal
+            $old_access_token = oauthconnector_get_connection_token($provider, $external_uid);
+            if (!$old_access_token || $old_access_token->tid != $access_token->tid) {
+              $connection = array('tid' => $access_token->tid, 'cid' => $external_uid);
+              drupal_write_record('oauthconnector_connections', $connection, $old_access_token ? array('cid') : array());
+            }
+            if ($old_access_token && $old_access_token->tid != $access_token->tid) {
+              $old_access_token->delete();
+            }
 
             //TODO: Include this in _connector_log_in()?
             //TODO: (Why do we do this at all? Isn't this taken care of by realname itself? Is it to ensure that we will be given access?)
@@ -306,13 +311,13 @@ function oauthconnector_provider_list() {
  *
  * @return object
  */
-function oauthconnector_get_connection_token($connector, $cid, $uid) {
-  $provider = $connector['oauthconnector provider'];
-
-  $result = db_query("SELECT t.* FROM {oauth_common_token} t INNER JOIN {oauthconnector_connections} c ON c.tid = t.tid  WHERE t.csid = %d AND c.cid = '%s'", array(
-    ':csid' => $provider->csid,
-    ':cid'  => $cid,
-  ));
+function oauthconnector_get_connection_token($provider, $cid) {
+  $result = db_query("SELECT t.* FROM {oauth_common_token} t
+    INNER JOIN {oauthconnector_connections} c ON c.tid = t.tid
+    WHERE t.csid = %d AND c.cid = '%s'", array(
+      ':csid' => $provider->csid,
+      ':cid'  => $cid,
+    ));
   $token = DrupalOAuthToken::fromResult($result);
 
   return $token;
@@ -335,7 +340,7 @@ function _oauthconnector_info($connector, $cid, $types, $uid) {
   $provider = $connector['oauthconnector provider'];
 
   if (!empty($provider->mapping['fields']['real name']['resource'])) {
-    $token     = oauthconnector_get_connection_token($connector, $cid, $uid);
+    $token     = oauthconnector_get_connection_token($connector['oauthconnector provider'], $cid);
     $real_name = _oauthconnector_fetch_field('real name', $provider, $token);
     //TODO: If $real_name is false - shouldn't we return that to trigger ther backing of mechanism?
     if ($real_name) {
@@ -355,7 +360,7 @@ function _oauthconnector_avatar($connector, $cid, $uid) {
   $provider = $connector['oauthconnector provider'];
 
   if (!empty($provider->mapping['fields']['avatar']['resource'])) {
-    $token = oauthconnector_get_connection_token($connector, $cid, $uid);
+    $token = oauthconnector_get_connection_token($connector['oauthconnector provider'], $cid);
     $info  = _oauthconnector_fetch_field('avatar', $provider, $token);
     if (empty($info)) {
       $info = FALSE;
