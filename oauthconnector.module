@@ -330,7 +330,7 @@ function oauthconnector_get_connection_token($provider, $cid) {
 /**
  * Information callback
  */
-function _oauthconnector_info($connector, $cid, $types, $uid) {
+function _oauthconnector_info($connector, $cid, $types) {
   if (!empty($types) && empty($types['real name'])) {
     return FALSE;
   }
@@ -354,7 +354,7 @@ function _oauthconnector_info($connector, $cid, $types, $uid) {
 /**
  * Information callback
  */
-function _oauthconnector_avatar($connector, $cid, $uid) {
+function _oauthconnector_avatar($connector, $cid) {
   $info = FALSE;
 
   $provider = $connector['oauthconnector provider'];
