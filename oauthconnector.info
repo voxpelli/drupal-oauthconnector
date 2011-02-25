@@ -1,4 +1,3 @@
-; $Id$
 name = OAuth Connector
 description = OAuth support for the Connector module
 core = 6.x
