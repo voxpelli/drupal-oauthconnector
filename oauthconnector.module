@@ -322,12 +322,12 @@ function oauthconnector_provider_list() {
  * @return object
  */
 function oauthconnector_get_connection_token($provider, $cid) {
-  $result = db_query("SELECT t.* FROM {oauth_common_token} t
-    INNER JOIN {oauthconnector_connections} c ON c.tid = t.tid
-    WHERE t.csid = :t.csid AND c.cid = :c.cid", array(':t.csid' => array(
-      ':csid' => $provider->csid,
-      ':cid' => $cid,
-    )));
+  $query = db_select("oauth_common_token", "t");
+  $query->join("oauthconnector_connections", "c", "c.tid = t.tid");
+  $query->fields("t");
+  $query->condition("t.csid", $provider->csid);
+  $query->condition("c.cid", $cid);
+  $result = $query->execute();
   $token = DrupalOAuthToken::fromResult($result);
 
   return $token;
@@ -421,7 +421,7 @@ function _oauthconnector_button($form, &$form_state, $login = TRUE) {
   }
   else {
     $destination = isset($_GET['q']) ? $_GET['q'] : '';
-    $query = drupal_query_string_encode($_GET, array('q'));
+    $query = drupal_http_build_query(drupal_get_query_parameters($_GET, array('q')));
     if ($query != '') {
       $destination .= '?' . $query;
     }
@@ -433,7 +433,7 @@ function _oauthconnector_button($form, &$form_state, $login = TRUE) {
 }
 
 function _oauthconnector_connect_button($form, &$form_state) {
-  _oauthconnector_button($form, &$form_state, FALSE);
+  _oauthconnector_button($form, $form_state, FALSE);
 }
 
 function _oauthconnector_fetch_field($field, $provider, $access_token, $consumer = NULL) {
