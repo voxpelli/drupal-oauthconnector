@@ -5,22 +5,9 @@
  * Install, update and uninstall functions for the OAuth Connector module.
  */
 
-/**
- * Implementation of hook_install().
- */
-function oauthconnector_install() {
-  drupal_install_schema('oauthconnector');
-}
 
 /**
- * Implementation of hook_uninstall().
- */
-function oauthconnector_uninstall() {
-  drupal_uninstall_schema('oauthconnector');
-}
-
-/**
- * Implementation of hook_schema().
+ * Implements hook_schema().
  */
 function oauthconnector_schema() {
   $schema = array();
@@ -35,64 +22,64 @@ function _oauthconnector_provider_schema_1() {
   return array(
     'description' => t('Stores information about OAuth providers.'),
     'export' => array(
-      'identifier'      => 'provider',
+      'identifier' => 'provider',
       'export callback' => 'oauthconnector_provider_export',
-      'list callback'   => 'oauthconnector_provider_list',
+      'list callback' => 'oauthconnector_provider_list',
     ),
     'fields' => array(
       'pid' => array(
         'description' => t('The primary identifier for a provider.'),
-        'type'        => 'serial',
-        'unsigned'    => TRUE,
-        'not null'    => TRUE,
-        'no export'   => TRUE,
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'no export' => TRUE,
       ),
       'name' => array(
         'description' => t('The machine-readable name of the provider.'),
-        'type'        => 'varchar',
-        'length'      => 100,
-        'not null'    => TRUE,
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
       ),
       'title' => array(
         'description' => t('The human-readable title of the provider.'),
-        'type'        => 'varchar',
-        'length'      => 255,
-        'not null'    => TRUE,
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
       ),
       'url' => array(
         'description' => t('A URL to the OAuth provider, typically to the front page.'),
-        'type'        => 'varchar',
-        'length'      => 255,
-        'not null'    => TRUE,
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
       ),
       'csid' => array(
         'description' => 'The {oauth_common_consumer}.csid of the OAuth consumer to use.',
-        'type'        => 'int',
-        'unsigned'    => TRUE,
-        'not null'    => TRUE,
-        'default'     => 0,
-        'no export'   => TRUE,
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'no export' => TRUE,
       ),
       'consumer_advanced' => array(
-        'type'           => 'text',
-        'size'           => 'big',
-        'description'    => 'Serialized advanced settings for an oauth consumer, like signature method.',
-        'not null'       => TRUE,
-        'serialize'      => TRUE,
+        'type' => 'text',
+        'size' => 'big',
+        'description' => 'Serialized advanced settings for an oauth consumer, like signature method.',
+        'not null' => TRUE,
+        'serialize' => TRUE,
         'object default' => array(
-          'signature method'       => 'HMAC-SHA1',
-          'authentication realm'   => '',
+          'signature method' => 'HMAC-SHA1',
+          'authentication realm' => '',
           'request token endpoint' => '/oauth/request_token',
           'authorization endpoint' => '/oauth/authorize',
-          'access token endpoint'  => '/oauth/access_token',
+          'access token endpoint' => '/oauth/access_token',
         ),
       ),
       'mapping' => array(
-        'type'           => 'text',
-        'size'           => 'big',
-        'description'    => 'Serialized mapping between the response of the API and Connector properties.',
-        'not null'       => TRUE,
-        'serialize'      => TRUE,
+        'type' => 'text',
+        'size' => 'big',
+        'description' => 'Serialized mapping between the response of the API and Connector properties.',
+        'not null' => TRUE,
+        'serialize' => TRUE,
         'object default' => array(),
       ),
     ),
@@ -109,16 +96,16 @@ function _oauthconnector_connections_schema_1() {
     'fields' => array(
       'tid' => array(
         'description' => 'The {oauth_common_token}.tid this connection is related to.',
-        'type'        => 'int',
-        'unsigned'    => TRUE,
-        'not null'    => TRUE,
-        'default'     => 0
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
       ),
       'cid' => array(
         'description' => t('The external id of a connection.'),
-        'type'        => 'varchar',
-        'length'      => 255,
-        'not null'    => TRUE
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
       ),
     ),
     'primary key' => array('tid'),
@@ -126,27 +113,4 @@ function _oauthconnector_connections_schema_1() {
       'tid_cid' => array('tid', 'cid'),
     ),
   );
-}
-
-function oauthconnector_update_6100() {
-  $ret = array();
-
-  if (drupal_get_installed_schema_version('oauth_common') < 6300) {
-    $ret['#abort'] = array('success' => FALSE, 'query' => 'You need to update the OAuth module prior to this module.');
-  }
-  else {
-    $oauthconnector_provider = _oauthconnector_provider_schema_1();
-
-    db_add_field($ret, 'oauthconnector_provider', 'csid', $oauthconnector_provider['fields']['csid']);
-
-    $ret[] = update_sql('UPDATE {oauthconnector_provider} op, {oauth_common_consumer} c SET op.csid = c.csid WHERE c.consumer_key = op.consumer_key');
-
-    db_drop_field($ret, 'oauthconnector_provider', 'consumer_key');
-
-    db_create_table($ret, 'oauthconnector_connections', _oauthconnector_connections_schema_1());
-
-    //TODO: Add connections for all old connections
-  }
-
-  return $ret;
 }

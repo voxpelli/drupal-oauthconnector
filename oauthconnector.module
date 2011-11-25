@@ -24,13 +24,13 @@
  * ************************************************************************* */
 
 /**
- * Implementation of hook_connector().
+ * Implements hook_connector().
  */
 function oauthconnector_connector() {
   $items = array();
 
   $base = array(
-    'button callback'         => '_oauthconnector_button',
+    'button callback' => '_oauthconnector_button',
     'connect button callback' => '_oauthconnector_connect_button',
   );
 
@@ -54,73 +54,78 @@ function oauthconnector_connector() {
 }
 
 /**
- * Implementation of hook_perm().
+ * Implements hook_permission().
  */
-function oauthconnector_perm() {
-  return array('administer oauth connector');
+function oauthconnector_permission() {
+  return array(
+    'administer oauth connector' => array(
+      'title' => t('administer oauth connector'),
+      'description' => t('Administer OAuth Connector settings'),
+    ),
+  );
 }
 
 /**
- * Implementation of hook_menu().
+ * Implements hook_menu().
  */
 function oauthconnector_menu() {
   $items = array();
 
   $base = array(
     'access arguments' => array('administer oauth connector'),
-    'file'             => 'oauthconnector.admin.inc',
+    'file' => 'oauthconnector.admin.inc',
   );
 
-  $items['admin/build/oauthconnector'] = array(
-    'title'          => 'OAuth Connector',
-    'description'    => 'Add, edit and remove OAuth Connector providers from the system.',
-    'page callback'  => 'oauthconnector_list_provider',
+  $items['admin/structure/oauthconnector'] = array(
+    'title' => 'OAuth Connector',
+    'description' => 'Add, edit and remove OAuth Connector providers from the system.',
+    'page callback' => 'oauthconnector_list_provider',
   ) + $base;
-  $items['admin/build/oauthconnector/list'] = array(
-    'title'          => 'List',
-    'page callback'  => 'oauthconnector_list_provider',
-    'type'           => MENU_DEFAULT_LOCAL_TASK,
-    'weight'         => -10,
+  $items['admin/structure/oauthconnector/list'] = array(
+    'title' => 'List',
+    'page callback' => 'oauthconnector_list_provider',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
   ) + $base;
-  $items['admin/build/oauthconnector/add'] = array(
-    'title'          => 'Add provider',
-    'page callback'  => 'oauthconnector_add_provider',
-    'type'           => MENU_LOCAL_TASK,
+  $items['admin/structure/oauthconnector/add'] = array(
+    'title' => 'Add provider',
+    'page callback' => 'oauthconnector_add_provider',
+    'type' => MENU_LOCAL_TASK,
   ) + $base;
-  $items['admin/build/oauthconnector/%oauthconnector_provider/edit'] = array(
-    'title'          => 'Edit provider',
-    'page callback'  => 'oauthconnector_edit_provider',
+  $items['admin/structure/oauthconnector/%oauthconnector_provider/edit'] = array(
+    'title' => 'Edit provider',
+    'page callback' => 'oauthconnector_edit_provider',
     'page arguments' => array(3),
-    'type'           => MENU_LOCAL_TASK,
+    'type' => MENU_LOCAL_TASK,
   ) + $base;
-  $items['admin/build/oauthconnector/%oauthconnector_provider/export'] = array(
-    'title'          => 'Export provider',
-    'page callback'  => 'drupal_get_form',
+  $items['admin/structure/oauthconnector/%oauthconnector_provider/export'] = array(
+    'title' => 'Export provider',
+    'page callback' => 'drupal_get_form',
     'page arguments' => array('oauthconnector_export_provider', 3),
-    'type'           => MENU_LOCAL_TASK,
+    'type' => MENU_LOCAL_TASK,
   ) + $base;
-  $items['admin/build/oauthconnector/%oauthconnector_provider/delete'] = array(
-    'title'          => 'Delete provider',
-    'page callback'  => 'drupal_get_form',
+  $items['admin/structure/oauthconnector/%oauthconnector_provider/delete'] = array(
+    'title' => 'Delete provider',
+    'page callback' => 'drupal_get_form',
     'page arguments' => array('oauthconnector_delete_confirm_provider', 3),
-    'type'           => MENU_CALLBACK,
+    'type' => MENU_CALLBACK,
   ) + $base;
-  $items['admin/build/oauthconnector/%oauthconnector_provider/disable'] = array(
-    'page callback'  => 'oauthconnector_disable_provider',
+  $items['admin/structure/oauthconnector/%oauthconnector_provider/disable'] = array(
+    'page callback' => 'oauthconnector_disable_provider',
     'page arguments' => array(3),
-    'type'           => MENU_CALLBACK,
+    'type' => MENU_CALLBACK,
   ) + $base;
-  $items['admin/build/oauthconnector/%oauthconnector_provider/enable'] = array(
-    'page callback'  => 'oauthconnector_enable_provider',
+  $items['admin/structure/oauthconnector/%oauthconnector_provider/enable'] = array(
+    'page callback' => 'oauthconnector_enable_provider',
     'page arguments' => array(3),
-    'type'           => MENU_CALLBACK,
+    'type' => MENU_CALLBACK,
   ) + $base;
 
   return $items;
 }
 
 /**
- * Implementation of hook_oauth_common_authorized().
+ * Implements hook_oauth_common_authorized().
  */
 function oauthconnector_oauth_common_authorized($consumer, $access_token, $request_token) {
   global $user;
@@ -133,9 +138,9 @@ function oauthconnector_oauth_common_authorized($consumer, $access_token, $reque
       if ($provider->csid == $consumer->csid) {
         //TODO: Only loop through active providers?
         //TODO: Optionally remove the access token - if the provider was only used for log in
-        //      and not for fetching any data then we don't need the access token anymore.
+//      and not for fetching any data then we don't need the access token anymore.
         //TODO: Check for whether this connector will be fetching name and avatar - if not then remove the access token?
-        //      Will need to check for whether someone else would like to use the access token as well.
+//      Will need to check for whether someone else would like to use the access token as well.
         //$access_token->delete();
         $external_uid = _oauthconnector_fetch_field('uid', $provider, $access_token, $consumer);
         if (!empty($external_uid)) {
@@ -145,7 +150,7 @@ function oauthconnector_oauth_common_authorized($consumer, $access_token, $reque
               $connect = _connector_add_connection('oauthconnector_' . $provider->name, $external_uid, $user->uid);
             }
           }
-          else if (!$user->uid) {
+          elseif (!$user->uid) {
             $connect = _connector_log_in('oauthconnector_' . $provider->name, $external_uid);
           }
           if ($connect) {
@@ -155,7 +160,10 @@ function oauthconnector_oauth_common_authorized($consumer, $access_token, $reque
             //TODO: Clean up connection on token removal and connection removal
             $old_access_token = oauthconnector_get_connection_token($provider, $external_uid);
             if (!$old_access_token || $old_access_token->tid != $access_token->tid) {
-              $connection = array('tid' => $access_token->tid, 'cid' => $external_uid);
+              $connection = array(
+                'tid' => $access_token->tid,
+                'cid' => $external_uid,
+              );
               drupal_write_record('oauthconnector_connections', $connection, $old_access_token ? array('cid') : array());
             }
             if ($old_access_token && $old_access_token->tid != $access_token->tid) {
@@ -169,7 +177,7 @@ function oauthconnector_oauth_common_authorized($consumer, $access_token, $reque
               _connector_information_update($user->uid, array('real name' => TRUE));
             }
             if (!empty($_SESSION['oauthconnector_destination'])) {
-              $_REQUEST['destination'] = $_SESSION['oauthconnector_destination'];
+              $_GET['destination'] = $_SESSION['oauthconnector_destination'];
               unset($_SESSION['oauthconnector_destination']);
               drupal_goto();
             }
@@ -254,11 +262,11 @@ function oauthconnector_provider_save($provider) {
     else {
       $consumer = new DrupalOAuthConsumer($provider->consumer_key, $provider->consumer_secret, array(
         'configuration' => array(
-          'provider_url'         => $provider->url,
-          'signature_method'     => $provider->consumer_advanced['signature method'],
+          'provider_url' => $provider->url,
+          'signature_method' => $provider->consumer_advanced['signature method'],
           'authentication_realm' => $provider->consumer_advanced['authentication realm'],
-          'access_endpoint'      => $provider->consumer_advanced['access token endpoint'],
-        )
+          'access_endpoint' => $provider->consumer_advanced['access token endpoint'],
+        ),
       ));
       $consumer->write();
       $provider->csid = $consumer->csid;
@@ -277,7 +285,10 @@ function oauthconnector_provider_delete($provider) {
   if ($provider->csid) {
     DrupalOAuthConsumer::deleteConsumer($provider->csid);
   }
-  db_query("DELETE FROM {oauthconnector_provider} WHERE name = '%s' AND pid = %d", $provider->name, $provider->pid);
+  db_delete('oauthconnector_provider')
+  ->condition('name', $provider->name)
+  ->condition('pid', $provider->pid)
+  ->execute();
 }
 
 /**
@@ -311,12 +322,12 @@ function oauthconnector_provider_list() {
  * @return object
  */
 function oauthconnector_get_connection_token($provider, $cid) {
-  $result = db_query("SELECT t.* FROM {oauth_common_token} t
-    INNER JOIN {oauthconnector_connections} c ON c.tid = t.tid
-    WHERE t.csid = %d AND c.cid = '%s'", array(
-      ':csid' => $provider->csid,
-      ':cid'  => $cid,
-    ));
+  $query = db_select("oauth_common_token", "t");
+  $query->join("oauthconnector_connections", "c", "c.tid = t.tid");
+  $query->fields("t");
+  $query->condition("t.csid", $provider->csid);
+  $query->condition("c.cid", $cid);
+  $result = $query->execute();
   $token = DrupalOAuthToken::fromResult($result);
 
   return $token;
@@ -400,19 +411,19 @@ function _oauthconnector_button($form, &$form_state, $login = TRUE) {
     'callback' => $callback_url,
   ));
 
-  if (isset($_REQUEST['destination'])) {
-    $destination = $_REQUEST['destination'];
-    unset($_REQUEST['destination']);
+  if (isset($_GET['destination'])) {
+    $destination = $_GET['destination'];
+    unset($_GET['destination']);
   }
   elseif (isset($_REQUEST['edit']['destination'])) {
     $destination = $_REQUEST['edit']['destination'];
     unset($_REQUEST['edit']['destination']);
   }
   else {
-   $destination = isset($_GET['q']) ? $_GET['q'] : '';
-    $query = drupal_query_string_encode($_GET, array('q'));
+    $destination = isset($_GET['q']) ? $_GET['q'] : '';
+    $query = drupal_http_build_query(drupal_get_query_parameters($_GET, array('q')));
     if ($query != '') {
-      $destination .= '?'. $query;
+      $destination .= '?' . $query;
     }
   }
 
@@ -422,7 +433,7 @@ function _oauthconnector_button($form, &$form_state, $login = TRUE) {
 }
 
 function _oauthconnector_connect_button($form, &$form_state) {
-  _oauthconnector_button($form, &$form_state, FALSE);
+  _oauthconnector_button($form, $form_state, FALSE);
 }
 
 function _oauthconnector_fetch_field($field, $provider, $access_token, $consumer = NULL) {
@@ -464,9 +475,10 @@ function _oauthconnector_fetch_field($field, $provider, $access_token, $consumer
     // Fetch the external user
     $request_method = empty($field['method post']) ? 'get' : 'post';
     try {
-      $info = (array)$client->{$request_method}($field['resource']);
+      $info = (array) $client->{$request_method}($field['resource']);
       $cache[$access_token->token_key][$field['method post']][$field['resource']] = $info;
-    } catch (Exception $e) {
+    }
+    catch (Exception $e) {
       if (is_a($e, 'HttpClientException')) {
         if ($e->getCode() == 401) {
           //TODO: Save the failure in some way so that we can stop trying to use a revoked token?

@@ -1,6 +1,6 @@
 name = OAuth Connector
 description = OAuth support for the Connector module
-core = 6.x
+core = 7.x
 package = "Connector"
 dependencies[] = connector
 dependencies[] = oauth_common
